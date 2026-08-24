@@ -4,7 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import com.jucelio.rotacerta.ui.RotaCertaApp
+import com.jucelio.rotacerta.presentation.navigation.RotaCertaApp
 import com.jucelio.rotacerta.ui.theme.RotaCertaTheme
 import dagger.hilt.android.AndroidEntryPoint
 

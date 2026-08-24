@@ -1,4 +1,4 @@
-package com.jucelio.rotacerta.ui
+package com.jucelio.rotacerta.presentation.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -9,26 +9,20 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
+import com.jucelio.rotacerta.core.navigation.AppRoutes
+import com.jucelio.rotacerta.presentation.splash.SplashRoute
 import com.jucelio.rotacerta.ui.delivery.DeliveryHistoryScreen
 import com.jucelio.rotacerta.ui.delivery.DeliveryHomeScreen
 import com.jucelio.rotacerta.ui.delivery.DeliveryRouteScreen
 import com.jucelio.rotacerta.ui.delivery.DeliveryScannerScreen
 import com.jucelio.rotacerta.ui.delivery.DeliveryViewModel
 
-private object Routes {
-    const val GRAPH = "delivery_graph"
-    const val HOME = "delivery_home"
-    const val ROUTE = "delivery_route"
-    const val HISTORY = "delivery_history"
-    const val SCANNER = "delivery_scanner"
-}
-
 /**
- * App do entregador (RotaCerta).
+ * Grafo raiz de navegação do RotaCerta.
  *
- * Todo o app compartilha um único [DeliveryViewModel] com escopo do
- * grafo, de modo que Início, Rota, Histórico e Scanner enxergam a
- * mesma rota mantida em memória.
+ * A Splash é a entrada do app. O fluxo de entregas continua usando um único
+ * [DeliveryViewModel] compartilhado no escopo do grafo de entregas, preservando
+ * a rota enquanto o entregador navega entre Home, Scanner, Rota e Histórico.
  */
 @Composable
 fun RotaCertaApp() {
@@ -36,40 +30,50 @@ fun RotaCertaApp() {
 
     NavHost(
         navController = navController,
-        startDestination = Routes.GRAPH
+        startDestination = AppRoutes.SPLASH
     ) {
-        navigation(
-            route = Routes.GRAPH,
-            startDestination = Routes.HOME
-        ) {
+        composable(AppRoutes.SPLASH) {
+            SplashRoute(
+                onFinished = {
+                    navController.navigate(AppRoutes.DELIVERY_GRAPH) {
+                        popUpTo(AppRoutes.SPLASH) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                }
+            )
+        }
 
-            composable(Routes.HOME) { entry ->
+        navigation(
+            route = AppRoutes.DELIVERY_GRAPH,
+            startDestination = AppRoutes.HOME
+        ) {
+            composable(AppRoutes.HOME) { entry ->
                 val viewModel = sharedViewModel(navController, entry)
 
                 DeliveryHomeScreen(
                     state = viewModel.state,
                     onToggleOnline = viewModel::toggleOnline,
                     onScanClick = {
-                        navController.navigate(Routes.SCANNER) { launchSingleTop = true }
+                        navController.navigate(AppRoutes.SCANNER) { launchSingleTop = true }
                     },
                     onRouteClick = {
-                        navController.navigate(Routes.ROUTE) { launchSingleTop = true }
+                        navController.navigate(AppRoutes.ROUTE) { launchSingleTop = true }
                     },
                     onHistoryClick = {
-                        navController.navigate(Routes.HISTORY) { launchSingleTop = true }
+                        navController.navigate(AppRoutes.HISTORY) { launchSingleTop = true }
                     },
-                    onProfileClick = { /* Perfil do entregador (em breve). */ }
+                    onProfileClick = { /* Perfil do entregador: próxima sprint. */ }
                 )
             }
 
-            composable(Routes.ROUTE) { entry ->
+            composable(AppRoutes.ROUTE) { entry ->
                 val viewModel = sharedViewModel(navController, entry)
 
                 DeliveryRouteScreen(
                     state = viewModel.state,
                     onBack = { navController.popBackStack() },
                     onScanClick = {
-                        navController.navigate(Routes.SCANNER) { launchSingleTop = true }
+                        navController.navigate(AppRoutes.SCANNER) { launchSingleTop = true }
                     },
                     onReorder = viewModel::reorderRoute,
                     onClear = viewModel::clearRoute,
@@ -81,23 +85,23 @@ fun RotaCertaApp() {
                 )
             }
 
-            composable(Routes.HISTORY) { entry ->
+            composable(AppRoutes.HISTORY) { entry ->
                 val viewModel = sharedViewModel(navController, entry)
 
                 DeliveryHistoryScreen(
                     state = viewModel.state,
                     onScanClick = {
-                        navController.navigate(Routes.SCANNER) { launchSingleTop = true }
+                        navController.navigate(AppRoutes.SCANNER) { launchSingleTop = true }
                     },
-                    onHomeClick = { navController.popBackStack(Routes.HOME, false) },
+                    onHomeClick = { navController.popBackStack(AppRoutes.HOME, false) },
                     onRouteClick = {
-                        navController.navigate(Routes.ROUTE) { launchSingleTop = true }
+                        navController.navigate(AppRoutes.ROUTE) { launchSingleTop = true }
                     },
-                    onProfileClick = { /* Perfil do entregador (em breve). */ }
+                    onProfileClick = { /* Perfil do entregador: próxima sprint. */ }
                 )
             }
 
-            composable(Routes.SCANNER) { entry ->
+            composable(AppRoutes.SCANNER) { entry ->
                 val viewModel = sharedViewModel(navController, entry)
 
                 DeliveryScannerScreen(
@@ -118,7 +122,7 @@ private fun sharedViewModel(
     entry: NavBackStackEntry
 ): DeliveryViewModel {
     val graphEntry = remember(entry) {
-        navController.getBackStackEntry(Routes.GRAPH)
+        navController.getBackStackEntry(AppRoutes.DELIVERY_GRAPH)
     }
     return hiltViewModel(graphEntry)
 }
