@@ -13,6 +13,10 @@ concurrency:
   group: android-ci-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+env:
+  ANDROID_HOME: /usr/local/lib/android/sdk
+  ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
@@ -29,7 +33,7 @@ jobs:
           cache: gradle
 
       - name: Install Android 35 SDK
-        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+        run: "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35" "build-tools;35.0.0"
 
       - name: Grant execute permission to Gradle wrapper
         run: chmod +x gradlew
