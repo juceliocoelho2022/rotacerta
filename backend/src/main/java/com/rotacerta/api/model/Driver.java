@@ -41,6 +41,9 @@ public class Driver {
     @Column(name = "vehicle_model", nullable = false, length = 80)
     private String vehicleModel;
 
+    @Column(name = "photo_url", length = 500)
+    private String photoUrl;
+
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
 
@@ -63,6 +66,7 @@ public class Driver {
         this.maxCapacity = maxCapacity;
         this.vehiclePlate = vehiclePlate;
         this.vehicleModel = vehicleModel;
+        this.photoUrl = null;
         this.updatedAt = OffsetDateTime.now();
     }
 
@@ -75,6 +79,7 @@ public class Driver {
     public int getMaxCapacity() { return maxCapacity; }
     public String getVehiclePlate() { return vehiclePlate; }
     public String getVehicleModel() { return vehicleModel; }
+    public String getPhotoUrl() { return photoUrl; }
     public OffsetDateTime getUpdatedAt() { return updatedAt; }
 
     public boolean hasCapacity() {
@@ -95,6 +100,11 @@ public class Driver {
 
     public void setAvailable(boolean available) {
         this.available = available;
+        this.updatedAt = OffsetDateTime.now();
+    }
+
+    public void setPhotoUrl(String photoUrl) {
+        this.photoUrl = photoUrl;
         this.updatedAt = OffsetDateTime.now();
     }
 
