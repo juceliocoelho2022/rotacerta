@@ -6,6 +6,7 @@ import './styles/operations.css'
 import './styles/executive.css'
 import './styles/deliveries.css'
 import './styles/routes.css'
+import './styles/customers.css'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
