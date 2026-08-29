@@ -12,15 +12,18 @@ import com.rotacerta.api.dto.TrackingEventResponse;
 import com.rotacerta.api.dto.TrackingResponse;
 import com.rotacerta.api.model.Customer;
 import com.rotacerta.api.model.CustomerAddress;
+import com.rotacerta.api.model.DeliveryLocation;
 import com.rotacerta.api.model.DeliveryPreference;
 import com.rotacerta.api.model.DeliveryStatus;
 import com.rotacerta.api.model.DeliveryType;
 import com.rotacerta.api.model.OrderDeliveryDetails;
 import com.rotacerta.api.model.OrderEntity;
 import com.rotacerta.api.model.OrderItem;
+import com.rotacerta.api.model.OrderPriority;
 import com.rotacerta.api.model.TrackingEvent;
 import com.rotacerta.api.repository.CustomerAddressRepository;
 import com.rotacerta.api.repository.CustomerRepository;
+import com.rotacerta.api.repository.DeliveryLocationRepository;
 import com.rotacerta.api.repository.DeliveryPreferenceRepository;
 import com.rotacerta.api.repository.OrderDeliveryDetailsRepository;
 import com.rotacerta.api.repository.OrderItemRepository;
@@ -31,15 +34,20 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Duration;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.Year;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.UUID;
 
 @Service
 public class OrderService {
+
+    private static final ZoneId OPERATIONS_ZONE = ZoneId.of("America/Sao_Paulo");
 
     private final OrderRepository orderRepository;
     private final TrackingEventRepository trackingEventRepository;
@@ -49,6 +57,7 @@ public class OrderService {
     private final DeliveryPreferenceRepository deliveryPreferenceRepository;
     private final OrderItemRepository orderItemRepository;
     private final OrderDeliveryDetailsRepository orderDeliveryDetailsRepository;
+    private final DeliveryLocationRepository deliveryLocationRepository;
 
     public OrderService(
             OrderRepository orderRepository,
@@ -58,7 +67,8 @@ public class OrderService {
             CustomerAddressRepository customerAddressRepository,
             DeliveryPreferenceRepository deliveryPreferenceRepository,
             OrderItemRepository orderItemRepository,
-            OrderDeliveryDetailsRepository orderDeliveryDetailsRepository
+            OrderDeliveryDetailsRepository orderDeliveryDetailsRepository,
+            DeliveryLocationRepository deliveryLocationRepository
     ) {
         this.orderRepository = orderRepository;
         this.trackingEventRepository = trackingEventRepository;
@@ -68,6 +78,7 @@ public class OrderService {
         this.deliveryPreferenceRepository = deliveryPreferenceRepository;
         this.orderItemRepository = orderItemRepository;
         this.orderDeliveryDetailsRepository = orderDeliveryDetailsRepository;
+        this.deliveryLocationRepository = deliveryLocationRepository;
     }
 
     @Transactional(readOnly = true)
@@ -147,6 +158,8 @@ public class OrderService {
                 instructions
         ));
 
+        syncDispatchLocation(order, delivery);
+
         trackingEventRepository.save(new TrackingEvent(
                 order,
                 DeliveryStatus.ORDER_CREATED,
@@ -198,6 +211,14 @@ public class OrderService {
         OrderEntity order = getOrder(id);
         order.setStatus(request.status());
         OrderEntity updatedOrder = orderRepository.save(order);
+
+        if (request.status() == DeliveryStatus.READY_FOR_SHIPMENT
+                || request.status() == DeliveryStatus.SHIPPED
+                || request.status() == DeliveryStatus.IN_TRANSIT
+                || request.status() == DeliveryStatus.OUT_FOR_DELIVERY) {
+            orderDeliveryDetailsRepository.findByOrderId(updatedOrder.getId())
+                    .ifPresent(delivery -> syncDispatchLocation(updatedOrder, delivery));
+        }
 
         trackingEventRepository.save(new TrackingEvent(
                 updatedOrder,
@@ -254,14 +275,74 @@ public class OrderService {
         return toSummary(updatedOrder);
     }
 
+    private void syncDispatchLocation(OrderEntity order, OrderDeliveryDetails delivery) {
+        if (delivery.getLatitude() == null || delivery.getLongitude() == null) {
+            return;
+        }
+
+        int priority = priorityWeight(order.getPriority());
+        int slaMinutes = planningSlaMinutes(order.getDeliveryType(), delivery);
+        String region = delivery.getCity() + "/" + delivery.getState();
+        String destinationLabel = delivery.getAddressLabel() + " • " + region;
+
+        DeliveryLocation location = deliveryLocationRepository.findByOrderId(order.getId())
+                .orElseGet(() -> new DeliveryLocation(
+                        order,
+                        delivery.getLatitude(),
+                        delivery.getLongitude(),
+                        priority,
+                        slaMinutes,
+                        destinationLabel,
+                        region
+                ));
+
+        location.updatePlanning(
+                delivery.getLatitude(),
+                delivery.getLongitude(),
+                priority,
+                slaMinutes,
+                destinationLabel,
+                region
+        );
+        deliveryLocationRepository.save(location);
+    }
+
+    private int priorityWeight(OrderPriority priority) {
+        return switch (priority) {
+            case URGENT -> 5;
+            case HIGH -> 3;
+            case NORMAL -> 1;
+        };
+    }
+
+    private int planningSlaMinutes(DeliveryType deliveryType, OrderDeliveryDetails delivery) {
+        if (delivery.getWindowEnd() != null) {
+            LocalDateTime now = LocalDateTime.now(OPERATIONS_ZONE);
+            LocalDateTime deadline = LocalDateTime.of(delivery.getDeliveryDate(), delivery.getWindowEnd());
+            long minutes = Duration.between(now, deadline).toMinutes();
+            if (minutes > 0) {
+                return (int) Math.max(15, Math.min(1440, minutes));
+            }
+            return 15;
+        }
+
+        return switch (deliveryType) {
+            case SAME_DAY -> 180;
+            case EXPRESS -> 240;
+            case SCHEDULED -> 360;
+            case STANDARD -> 720;
+        };
+    }
+
     private void validateDeliveryDate(LocalDate deliveryDate, DeliveryType deliveryType) {
+        LocalDate today = LocalDate.now(OPERATIONS_ZONE);
         if (deliveryDate == null) {
             throw new IllegalArgumentException("A data de entrega é obrigatória.");
         }
-        if (deliveryDate.isBefore(LocalDate.now())) {
+        if (deliveryDate.isBefore(today)) {
             throw new IllegalArgumentException("A data de entrega não pode estar no passado.");
         }
-        if (deliveryType == DeliveryType.SAME_DAY && !deliveryDate.equals(LocalDate.now())) {
+        if (deliveryType == DeliveryType.SAME_DAY && !deliveryDate.equals(today)) {
             throw new IllegalArgumentException("Pedidos SAME_DAY devem ter entrega na data atual.");
         }
     }
@@ -292,7 +373,7 @@ public class OrderService {
     private String generateOrderNumber() {
         String value;
         do {
-            value = "RC-" + Year.now().getValue() + "-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+            value = "RC-" + Year.now(OPERATIONS_ZONE).getValue() + "-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
         } while (orderRepository.findByOrderNumber(value).isPresent());
         return value;
     }
@@ -300,7 +381,7 @@ public class OrderService {
     private String generateTrackingCode() {
         String value;
         do {
-            value = "TRK-" + Year.now().getValue() + "-" + UUID.randomUUID().toString().substring(0, 12).toUpperCase();
+            value = "TRK-" + Year.now(OPERATIONS_ZONE).getValue() + "-" + UUID.randomUUID().toString().substring(0, 12).toUpperCase();
         } while (orderRepository.findByTrackingCode(value).isPresent());
         return value;
     }
