@@ -272,3 +272,54 @@ export interface CustomerDetail {
   preference: DeliveryPreference
   orders: CustomerOrder[]
 }
+
+export type DroneStatus = 'AVAILABLE' | 'RESERVED' | 'IN_FLIGHT' | 'RETURNING' | 'CHARGING' | 'MAINTENANCE' | 'OFFLINE'
+export type DroneMissionStatus = 'PLANNED' | 'AUTHORIZED' | 'LOADING' | 'READY_FOR_TAKEOFF' | 'IN_FLIGHT' | 'APPROACHING' | 'LOWERING_PACKAGE' | 'DELIVERED' | 'RETURNING' | 'COMPLETED' | 'ABORTED'
+
+export interface Drone {
+  id: number
+  code: string
+  model: string
+  status: DroneStatus
+  latitude: number
+  longitude: number
+  batteryPercent: number
+  maxPayloadKg: number
+  maxRangeKm: number
+  available: boolean
+}
+
+export interface DroneEligibility {
+  orderId: number
+  orderNumber: string
+  eligible: boolean
+  payloadKg: number
+  destinationLatitude: number
+  destinationLongitude: number
+  recommendedDroneId: number | null
+  recommendedDroneCode: string | null
+  estimatedDistanceKm: number | null
+  estimatedEtaMinutes: number | null
+  blockers: string[]
+  pendingExternalChecks: string[]
+  mode: string
+}
+
+export interface DroneMission {
+  id: number
+  orderId: number
+  orderNumber: string
+  droneId: number
+  droneCode: string
+  droneModel: string
+  status: DroneMissionStatus
+  payloadKg: number
+  distanceKm: number
+  etaMinutes: number
+  originLatitude: number
+  originLongitude: number
+  destinationLatitude: number
+  destinationLongitude: number
+  createdAt: string
+  updatedAt: string
+}
