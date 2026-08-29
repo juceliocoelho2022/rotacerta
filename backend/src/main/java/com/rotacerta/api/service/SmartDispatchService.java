@@ -136,12 +136,15 @@ public class SmartDispatchService {
         int position = 1;
 
         while (!remaining.isEmpty()) {
+            final double originLat = currentLat;
+            final double originLon = currentLon;
+
             DeliveryAssignment next = remaining.stream()
                     .min(Comparator.comparingDouble(assignment -> {
                         DeliveryLocation location = getLocation(assignment.getOrder().getId());
                         return distanceKm(
-                                currentLat,
-                                currentLon,
+                                originLat,
+                                originLon,
                                 location.getLatitude(),
                                 location.getLongitude()
                         );
