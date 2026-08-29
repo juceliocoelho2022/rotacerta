@@ -26,6 +26,12 @@ public class DeliveryLocation {
     @Column(name = "sla_minutes", nullable = false)
     private int slaMinutes;
 
+    @Column(name = "destination_label", nullable = false, length = 180)
+    private String destinationLabel;
+
+    @Column(nullable = false, length = 80)
+    private String region;
+
     protected DeliveryLocation() {}
 
     public Long getId() { return id; }
@@ -34,4 +40,6 @@ public class DeliveryLocation {
     public double getLongitude() { return longitude; }
     public int getPriority() { return priority; }
     public int getSlaMinutes() { return slaMinutes; }
+    public String getDestinationLabel() { return destinationLabel; }
+    public String getRegion() { return region; }
 }
