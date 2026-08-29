@@ -57,6 +57,11 @@ public class SmartDispatchController {
         return smartDispatchService.optimizeRoute(driverId);
     }
 
+    @PostMapping("/drivers/{driverId}/route/apply")
+    public DriverRouteResponse applyOptimizedRoute(@PathVariable Long driverId) {
+        return smartDispatchService.applyOptimizedRoute(driverId);
+    }
+
     @PatchMapping("/drivers/{driverId}/location")
     public DriverRouteResponse updateLocation(
             @PathVariable Long driverId,
