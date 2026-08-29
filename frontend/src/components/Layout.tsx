@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   PackageCheck,
   PackageSearch,
+  Plane,
   Route,
   Search,
   Settings,
@@ -20,6 +21,7 @@ const menu = [
   { to: '/deliveries', label: 'Entregas', icon: PackageCheck },
   { to: '/routes', label: 'Rotas', icon: Route },
   { to: '/drivers', label: 'Motoristas', icon: UsersRound },
+  { to: '/drones', label: 'Drones', icon: Plane },
   { to: '/vehicles', label: 'Veículos', icon: CarFront },
   { to: '/customers', label: 'Clientes', icon: UserRound },
   { to: '/orders', label: 'Pedidos', icon: PackageSearch },
@@ -54,7 +56,7 @@ export function Layout() {
 
         <div className="sidebarFooter adminSidebarFooter">
           <span className="healthDot" /> Operação conectada
-          <small>Smart Dispatch + RotaCerta Live</small>
+          <small>Smart Dispatch + RotaCerta Live + Drone Lab</small>
         </div>
       </aside>
 
