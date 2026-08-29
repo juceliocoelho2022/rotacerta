@@ -16,8 +16,13 @@ export default function App() {
           <Route path="/orders" element={<Orders />} />
           <Route path="/tracking" element={<Tracking />} />
           <Route path="/deliveries" element={<Placeholder title="Entregas" />} />
-          <Route path="/stock" element={<Placeholder title="Estoque" />} />
           <Route path="/routes" element={<Placeholder title="Rotas" />} />
+          <Route path="/drivers" element={<Placeholder title="Motoristas" />} />
+          <Route path="/vehicles" element={<Placeholder title="Veículos" />} />
+          <Route path="/customers" element={<Placeholder title="Clientes" />} />
+          <Route path="/incidents" element={<Placeholder title="Ocorrências" />} />
+          <Route path="/reports" element={<Placeholder title="Relatórios" />} />
+          <Route path="/stock" element={<Placeholder title="Estoque" />} />
           <Route path="/settings" element={<Placeholder title="Configurações" />} />
         </Route>
       </Routes>
