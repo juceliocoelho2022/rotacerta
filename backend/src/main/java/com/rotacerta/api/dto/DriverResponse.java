@@ -12,5 +12,6 @@ public record DriverResponse(
         int maxCapacity,
         String vehiclePlate,
         String vehicleModel,
+        String photoUrl,
         OffsetDateTime updatedAt
 ) {}
