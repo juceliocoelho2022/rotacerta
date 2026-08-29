@@ -4,8 +4,12 @@ import com.rotacerta.api.dto.DispatchAssignmentResponse;
 import com.rotacerta.api.dto.DriverLocationUpdateRequest;
 import com.rotacerta.api.dto.DriverRouteResponse;
 import com.rotacerta.api.dto.DriverRouteStopResponse;
+import com.rotacerta.api.dto.MonitoringDriverResponse;
+import com.rotacerta.api.dto.MonitoringOrderResponse;
+import com.rotacerta.api.dto.OperationsMonitoringResponse;
 import com.rotacerta.api.model.DeliveryAssignment;
 import com.rotacerta.api.model.DeliveryLocation;
+import com.rotacerta.api.model.DeliveryStatus;
 import com.rotacerta.api.model.Driver;
 import com.rotacerta.api.model.OrderEntity;
 import com.rotacerta.api.repository.DeliveryAssignmentRepository;
@@ -20,12 +24,24 @@ import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 public class SmartDispatchService {
 
     private static final double URBAN_AVERAGE_SPEED_KMH = 28.0;
     private static final int SERVICE_MINUTES_PER_STOP = 4;
+    private static final Set<DeliveryStatus> IN_PROGRESS_STATUSES = Set.of(
+            DeliveryStatus.PICKING,
+            DeliveryStatus.PACKING,
+            DeliveryStatus.READY_FOR_SHIPMENT,
+            DeliveryStatus.SHIPPED,
+            DeliveryStatus.IN_TRANSIT,
+            DeliveryStatus.OUT_FOR_DELIVERY
+    );
 
     private final OrderRepository orderRepository;
     private final DriverRepository driverRepository;
@@ -44,12 +60,6 @@ public class SmartDispatchService {
         this.assignmentRepository = assignmentRepository;
     }
 
-    /**
-     * Seleciona automaticamente o motorista com menor score logístico.
-     *
-     * O score combina distância até o destino, ocupação atual do motorista,
-     * pressão de SLA e prioridade do pedido. Quanto menor, melhor.
-     */
     @Transactional
     public DispatchAssignmentResponse assignBestDriver(Long orderId) {
         DeliveryAssignment existing = assignmentRepository.findByOrderId(orderId).orElse(null);
@@ -99,7 +109,84 @@ public class SmartDispatchService {
                 ));
     }
 
-    /** Atualiza a posição do motorista; a próxima consulta de rota será recalculada. */
+    @Transactional(readOnly = true)
+    public OperationsMonitoringResponse monitoring() {
+        List<OrderEntity> orders = orderRepository.findAll();
+        List<Driver> drivers = driverRepository.findAll();
+        List<DeliveryLocation> locations = locationRepository.findAll();
+        List<DeliveryAssignment> assignments = assignmentRepository.findAll();
+
+        Map<Long, DeliveryLocation> locationByOrder = locations.stream()
+                .collect(Collectors.toMap(
+                        location -> location.getOrder().getId(),
+                        Function.identity()
+                ));
+
+        Map<Long, DeliveryAssignment> assignmentByOrder = assignments.stream()
+                .collect(Collectors.toMap(
+                        assignment -> assignment.getOrder().getId(),
+                        Function.identity()
+                ));
+
+        long delivered = orders.stream()
+                .filter(order -> order.getStatus() == DeliveryStatus.DELIVERED)
+                .count();
+
+        long failed = orders.stream()
+                .filter(order -> order.getStatus() == DeliveryStatus.DELIVERY_FAILED)
+                .count();
+
+        long inProgress = orders.stream()
+                .filter(order -> IN_PROGRESS_STATUSES.contains(order.getStatus()))
+                .count();
+
+        long delayed = assignments.stream()
+                .filter(assignment -> {
+                    DeliveryLocation location = locationByOrder.get(assignment.getOrder().getId());
+                    return location != null && assignment.getEtaMinutes() > location.getSlaMinutes();
+                })
+                .count();
+
+        long completed = delivered + failed;
+        double successRate = completed == 0
+                ? 0.0
+                : BigDecimal.valueOf((delivered * 100.0) / completed)
+                        .setScale(1, RoundingMode.HALF_UP)
+                        .doubleValue();
+
+        List<MonitoringDriverResponse> driverResponses = drivers.stream()
+                .map(driver -> new MonitoringDriverResponse(
+                        driver.getId(),
+                        driver.getName(),
+                        driver.getLatitude(),
+                        driver.getLongitude(),
+                        driver.isAvailable(),
+                        driver.getCurrentLoad(),
+                        driver.getMaxCapacity()
+                ))
+                .toList();
+
+        List<MonitoringOrderResponse> orderResponses = orders.stream()
+                .filter(order -> locationByOrder.containsKey(order.getId()))
+                .map(order -> toMonitoringOrder(
+                        order,
+                        locationByOrder.get(order.getId()),
+                        assignmentByOrder.get(order.getId())
+                ))
+                .toList();
+
+        return new OperationsMonitoringResponse(
+                orders.size(),
+                inProgress,
+                delivered,
+                delayed,
+                drivers.stream().filter(Driver::isAvailable).count(),
+                successRate,
+                driverResponses,
+                orderResponses
+        );
+    }
+
     @Transactional
     public DriverRouteResponse updateDriverLocation(
             Long driverId,
@@ -111,10 +198,6 @@ public class SmartDispatchService {
         return buildRoute(driver);
     }
 
-    /**
-     * Recalcula dinamicamente a sequência das entregas atribuídas usando
-     * nearest-neighbor como heurística inicial de VRP.
-     */
     @Transactional(readOnly = true)
     public DriverRouteResponse getOptimizedRoute(Long driverId) {
         return buildRoute(getDriver(driverId));
@@ -211,6 +294,28 @@ public class SmartDispatchService {
         return new Candidate(driver, distance, Math.max(0.0, score), etaMinutes);
     }
 
+    private MonitoringOrderResponse toMonitoringOrder(
+            OrderEntity order,
+            DeliveryLocation location,
+            DeliveryAssignment assignment
+    ) {
+        return new MonitoringOrderResponse(
+                order.getId(),
+                order.getOrderNumber(),
+                order.getCustomer().getName(),
+                order.getStatus(),
+                location.getLatitude(),
+                location.getLongitude(),
+                location.getPriority(),
+                location.getSlaMinutes(),
+                assignment == null ? null : assignment.getDriver().getId(),
+                assignment == null ? null : assignment.getDriver().getName(),
+                assignment == null ? null : assignment.getEtaMinutes(),
+                assignment == null ? null : assignment.getDistanceKm(),
+                assignment == null ? null : assignment.getScore()
+        );
+    }
+
     private Driver getDriver(Long driverId) {
         return driverRepository.findById(driverId)
                 .orElseThrow(() -> new IllegalArgumentException(
@@ -244,7 +349,6 @@ public class SmartDispatchService {
         return Math.max(1, (int) Math.ceil((distanceKm / URBAN_AVERAGE_SPEED_KMH) * 60.0));
     }
 
-    /** Distância geodésica pela fórmula de Haversine. */
     private double distanceKm(double lat1, double lon1, double lat2, double lon2) {
         double earthRadiusKm = 6371.0088;
         double dLat = Math.toRadians(lat2 - lat1);
