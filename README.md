@@ -2,6 +2,7 @@
 
 > **Smart E-commerce Logistics & Delivery Platform**
 
+[![Platform CI](https://github.com/juceliocoelho2022/rotacerta/actions/workflows/platform-ci.yml/badge.svg)](https://github.com/juceliocoelho2022/rotacerta/actions/workflows/platform-ci.yml)
 [![Android CI](https://github.com/juceliocoelho2022/rotacerta/actions/workflows/android-ci.yml/badge.svg)](https://github.com/juceliocoelho2022/rotacerta/actions/workflows/android-ci.yml)
 ![Java](https://img.shields.io/badge/Java-21-orange)
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5.5-6DB33F)
@@ -14,23 +15,64 @@
 
 **RotaCerta** é uma plataforma Full Stack para gestão logística de pedidos de e-commerce, rastreamento de entregas e acompanhamento operacional do fluxo entre loja, centro de distribuição, transportadora, entregador e cliente final.
 
-O projeto foi desenvolvido para demonstrar, de forma prática, a integração entre **Frontend React**, **Backend Java com Spring Boot**, **PostgreSQL** e **Docker**, utilizando uma arquitetura baseada em API REST e separação clara de responsabilidades.
+A solução integra **React + TypeScript**, **Java 21 + Spring Boot**, **PostgreSQL**, **Flyway**, **Docker Compose** e um aplicativo Android em evolução com **Kotlin + Jetpack Compose**.
 
-O repositório também contém a evolução do aplicativo Android do entregador, construído com **Kotlin + Jetpack Compose**, formando um ecossistema que pode atender operação web, cliente e mobile.
+O principal diferencial atual é o **RotaCerta Live**: quando uma encomenda sai para entrega, o sistema gera um link público temporário e seguro para o cliente acompanhar o pedido e autorizar previamente outra pessoa — familiar, vizinho, porteiro ou terceiro — caso não esteja no endereço. O objetivo é reduzir tentativas de entrega frustradas, reentregas e custo operacional.
 
 ---
 
-## 🎯 Objetivos
+## 🚀 RotaCerta Live
 
-- Gerenciar pedidos e entregas de e-commerce.
-- Acompanhar o status logístico de cada pedido.
-- Gerar e consultar códigos de rastreamento.
-- Registrar o histórico de eventos de cada entrega.
-- Disponibilizar um dashboard operacional para a empresa.
-- Permitir atualização de status pela central de operações.
-- Integrar frontend, backend e banco de dados em uma aplicação real.
-- Executar todo o ambiente de forma reproduzível com Docker Compose.
-- Evoluir o projeto para autenticação, mensageria, observabilidade e rastreamento em tempo real.
+Fluxo implementado e validado localmente:
+
+```text
+Pedido OUT_FOR_DELIVERY
+        ↓
+Spring Boot cria sessão Live
+        ↓
+Token público temporário
+        ↓
+Cliente acessa /live/{token}
+        ↓
+Acompanha timeline da entrega
+        ↓
+Autoriza outro recebedor
+        ↓
+Spring Boot valida a solicitação
+        ↓
+PostgreSQL persiste a instrução
+        ↓
+Página Live exibe o recebedor autorizado
+```
+
+### Recursos atuais
+
+- link público sem expor o ID sequencial do pedido;
+- token aleatório de alta entropia;
+- expiração automática em 48 horas;
+- encerramento da sessão quando a entrega termina, falha, é devolvida ou cancelada;
+- página pública responsiva em `/live/:token`;
+- timeline dos eventos logísticos;
+- atualização automática a cada 30 segundos;
+- autorização de familiar, vizinho, porteiro ou outra pessoa;
+- campo de instruções para a entrega;
+- persistência no PostgreSQL;
+- botão **Abrir Live** no painel operacional;
+- CI para frontend e backend.
+
+Exemplo de uso:
+
+```text
+Cliente não estará em casa
+        ↓
+Autoriza: Maria Souza
+Relação: Vizinho
+Instrução: Pode receber a encomenda na casa ao lado
+        ↓
+Autorização registrada com sucesso
+```
+
+Documentação técnica: [`docs/ROTACERTA_LIVE.md`](docs/ROTACERTA_LIVE.md)
 
 ---
 
@@ -45,7 +87,7 @@ O repositório também contém a evolução do aplicativo Android do entregador,
 - **Axios**
 - **Lucide React**
 - **CSS responsivo**
-- **Nginx** para servir o build em container
+- **Nginx**
 
 ### Backend
 
@@ -63,18 +105,20 @@ O repositório também contém a evolução do aplicativo Android do entregador,
 ### Banco de dados
 
 - **PostgreSQL 17**
-- **Flyway** para versionamento do schema
-- Relacionamentos com **JPA/Hibernate**
-- Índices para status e código de rastreamento
+- **Flyway**
+- **JPA / Hibernate**
+- índices para status e código de rastreamento
+- migrations versionadas
 
 ### DevOps e infraestrutura
 
 - **Docker**
 - **Docker Compose**
-- **Dockerfile multi-stage** para o backend
-- **Nginx** no container do frontend
-- Healthcheck do PostgreSQL
-- Variáveis de ambiente para configuração da aplicação
+- **Nginx**
+- Dockerfile multi-stage
+- healthcheck do PostgreSQL
+- variáveis de ambiente
+- **GitHub Actions / Platform CI**
 
 ### Mobile
 
@@ -93,34 +137,34 @@ O repositório também contém a evolução do aplicativo Android do entregador,
 ## 🏗️ Arquitetura
 
 ```text
-                    ┌──────────────────────────┐
-                    │      React + Vite        │
-                    │   Painel Operacional     │
-                    └────────────┬─────────────┘
-                                 │
-                            REST / JSON
-                                 │
-                    ┌────────────▼─────────────┐
-                    │     Spring Boot API      │
-                    │        Java 21           │
-                    ├──────────────────────────┤
-                    │ Controller               │
-                    │ Service                  │
-                    │ Repository               │
-                    │ DTO / Validation         │
-                    └────────────┬─────────────┘
-                                 │
-                          Spring Data JPA
-                                 │
-                    ┌────────────▼─────────────┐
-                    │      PostgreSQL 17       │
-                    │   Flyway Migrations      │
-                    └──────────────────────────┘
+┌──────────────────────────┐
+│      React + Vite        │
+│   Painel Operacional     │
+│     RotaCerta Live       │
+└────────────┬─────────────┘
+             │ REST / JSON
+             ▼
+┌──────────────────────────┐
+│     Spring Boot API      │
+│        Java 21           │
+├──────────────────────────┤
+│ Controller               │
+│ Service                  │
+│ Repository               │
+│ DTO / Validation         │
+│ Transaction Management   │
+└────────────┬─────────────┘
+             │ Spring Data JPA
+             ▼
+┌──────────────────────────┐
+│      PostgreSQL 17       │
+│   Flyway Migrations      │
+└──────────────────────────┘
 
-              Docker Compose orquestra o ambiente
+Docker Compose orquestra frontend, backend e banco.
 ```
 
-### Fluxo de negócio
+### Fluxo logístico
 
 ```text
 Pedido criado
@@ -137,6 +181,8 @@ Em transporte
       ↓
 Saiu para entrega
       ↓
+RotaCerta Live
+      ↓
 Entregue
 ```
 
@@ -146,33 +192,35 @@ Entregue
 
 ### Dashboard operacional
 
-O dashboard consome dados reais da API Spring Boot e apresenta:
-
 - total de pedidos;
 - pedidos em separação;
 - pedidos em transporte;
 - pedidos que saíram para entrega;
 - entregas concluídas;
 - falhas de entrega;
-- últimos pedidos e seus respectivos status.
+- últimos pedidos e seus status.
 
 ### Gestão de pedidos
 
 - listagem de pedidos;
-- identificação do cliente;
-- valor da compra;
+- cliente e valor da compra;
 - código de rastreamento;
-- atualização do status logístico.
+- atualização do status logístico;
+- geração do link RotaCerta Live.
 
-### Rastreamento
+### Rastreamento tradicional
 
 O cliente ou operador pode consultar uma entrega pelo código de rastreamento e visualizar a timeline completa de eventos.
 
-Código disponível nos dados de demonstração:
+Código de demonstração:
 
 ```text
 RC-2026-SP-8F29A73
 ```
+
+### RotaCerta Live
+
+O cliente recebe uma experiência dedicada para uma entrega em andamento, podendo acompanhar os eventos e registrar previamente outro recebedor.
 
 ---
 
@@ -205,25 +253,36 @@ POST  /api/deliveries/{id}/confirm
 POST  /api/deliveries/{id}/failure
 ```
 
-Exemplo de atualização de status:
+### RotaCerta Live
+
+```http
+POST /api/deliveries/{id}/live-link
+GET  /api/public/live/{token}
+POST /api/public/live/{token}/recipient
+```
+
+Exemplo de autorização:
 
 ```json
 {
-  "status": "OUT_FOR_DELIVERY",
-  "location": "São Paulo/SP"
+  "name": "Maria Souza",
+  "relationship": "Vizinho",
+  "instructions": "Pode receber a encomenda na casa ao lado."
 }
 ```
 
 ---
 
-## 🗄️ Modelo de dados atual
+## 🗄️ Modelo de dados
 
 ```text
 Customer
    │
    └── 1:N ── Order
                 │
-                └── 1:N ── TrackingEvent
+                ├── 1:N ── TrackingEvent
+                │
+                └── 1:N ── DeliveryTrackingSession
 ```
 
 Principais tabelas:
@@ -232,10 +291,11 @@ Principais tabelas:
 customers
 orders
 tracking_events
+delivery_tracking_sessions
 flyway_schema_history
 ```
 
-O relacionamento `Order -> Customer` utiliza carregamento `LAZY`, com os serviços de leitura executados dentro de transações `readOnly`, evitando acesso a proxies Hibernate fora da sessão.
+O relacionamento `Order -> Customer` utiliza carregamento `LAZY`, com serviços de leitura executados dentro de transações `readOnly` para evitar acesso a proxies Hibernate fora da sessão.
 
 ---
 
@@ -245,6 +305,7 @@ O relacionamento `Order -> Customer` utiliza carregamento `LAZY`, com os serviç
 
 - Docker Desktop
 - Docker Compose
+- Git
 
 Clone o repositório:
 
@@ -259,7 +320,7 @@ Suba o ambiente:
 docker compose up -d --build
 ```
 
-Verifique os containers:
+Verifique:
 
 ```bash
 docker compose ps
@@ -268,9 +329,9 @@ docker compose ps
 Serviços esperados:
 
 ```text
-rotacerta-postgres
-rotacerta-backend
-rotacerta-frontend
+rotacerta-postgres   healthy
+rotacerta-backend    running
+rotacerta-frontend   running
 ```
 
 ### Endereços
@@ -297,40 +358,31 @@ status
 UP
 ```
 
----
+### Atenção à porta 5173
 
-## 💻 Executando em desenvolvimento
+Se existir outro processo Vite local usando `localhost:5173`, ele pode interceptar o acesso ao frontend Docker. Para identificar processos na porta:
 
-### Backend
-
-```bash
-cd backend
-mvn spring-boot:run
+```powershell
+Get-NetTCPConnection -LocalPort 5173 -State Listen | ForEach-Object {
+    $processo = Get-CimInstance Win32_Process -Filter "ProcessId=$($_.OwningProcess)"
+    [PSCustomObject]@{
+        PID = $_.OwningProcess
+        Name = $processo.Name
+        CommandLine = $processo.CommandLine
+    }
+}
 ```
 
-### Frontend
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-Crie um arquivo `.env` no frontend quando necessário:
-
-```env
-VITE_API_URL=http://localhost:8080
-```
+Encerre somente o processo Vite conflitante e mantenha o Docker Desktop ativo.
 
 ---
 
-## 📁 Estrutura do repositório
+## 📁 Estrutura
 
 ```text
 rotacerta/
 │
-├── app/                         # Aplicativo Android do entregador
-│
+├── app/                         # Android / Kotlin / Compose
 ├── backend/                     # Java 21 + Spring Boot
 │   ├── src/main/java/com/rotacerta/api/
 │   │   ├── config/
@@ -339,28 +391,20 @@ rotacerta/
 │   │   ├── model/
 │   │   ├── repository/
 │   │   └── service/
-│   │
-│   ├── src/main/resources/
-│   │   ├── db/migration/
-│   │   └── application.yml
-│   ├── Dockerfile
-│   └── pom.xml
+│   └── src/main/resources/db/migration/
 │
 ├── frontend/                    # React + TypeScript + Vite
-│   ├── src/
-│   │   ├── components/
-│   │   ├── pages/
-│   │   ├── services/
-│   │   └── styles/
-│   ├── Dockerfile
-│   ├── nginx.conf
-│   └── package.json
+│   └── src/
+│       ├── components/
+│       ├── pages/
+│       ├── services/
+│       └── styles/
 │
 ├── database/
-│   └── init.sql
+├── docs/
+│   └── ROTACERTA_LIVE.md
 │
 ├── docker-compose.yml
-├── ARCHITECTURE.md
 └── README.md
 ```
 
@@ -368,45 +412,50 @@ rotacerta/
 
 ## ✅ Status atual
 
-### Implementado
+### Implementado e validado
 
 - [x] Frontend React + TypeScript
 - [x] Dashboard operacional
-- [x] Integração React → Spring Boot
 - [x] Backend Java 21 + Spring Boot
 - [x] API REST
 - [x] Spring Data JPA
-- [x] PostgreSQL
+- [x] PostgreSQL 17
 - [x] Flyway
+- [x] Docker Compose
+- [x] Swagger / OpenAPI
+- [x] Spring Boot Actuator
 - [x] Rastreamento por código
 - [x] Histórico de eventos
 - [x] Atualização de status
-- [x] Swagger/OpenAPI
-- [x] Spring Boot Actuator
-- [x] Dockerfile backend
-- [x] Dockerfile frontend
-- [x] Docker Compose
+- [x] RotaCerta Live
+- [x] Link público temporário
+- [x] Timeline pública da entrega
+- [x] Autorização de recebedor alternativo
+- [x] Persistência da autorização no PostgreSQL
+- [x] Atualização automática a cada 30 segundos
+- [x] CI para frontend e backend
 - [x] Aplicativo Android em evolução
 
-### Roadmap
+### Próximas sprints
 
+- [ ] Exibir recebedor autorizado no app Android do entregador
+- [ ] PIN temporário de confirmação de entrega
+- [ ] GPS do motorista
+- [ ] ETA e quantidade de paradas restantes
+- [ ] Mapa em tempo real com privacidade controlada
 - [ ] Spring Security + JWT
 - [ ] Perfis `ADMIN`, `CUSTOMER` e `DRIVER`
-- [ ] Apache Kafka para eventos de entrega
-- [ ] Notificações assíncronas
-- [ ] Redis para cache
+- [ ] Apache Kafka para eventos logísticos
+- [ ] Notificações por canal autorizado
+- [ ] Redis
 - [ ] Prometheus + Grafana
 - [ ] OpenTelemetry
 - [ ] Testcontainers
-- [ ] CI/CD completo para Web + Backend
-- [ ] Integração definitiva do Android com a API
-- [ ] Google Maps / Maps Compose
-- [ ] Rastreamento em tempo real
-- [ ] Comprovante de entrega por QR Code/PIN/foto
+- [ ] Métricas de reentregas evitadas e economia operacional
 
 ---
 
-## 🧠 Conceitos de Engenharia de Software aplicados
+## 🧠 Conceitos aplicados
 
 - Arquitetura em camadas
 - DTO Pattern
@@ -414,12 +463,15 @@ rotacerta/
 - Injeção de dependência
 - API REST
 - HTTP / JSON
-- Transações com Spring
+- Spring Transaction Management
 - Lazy Loading com JPA/Hibernate
-- Versionamento de banco com Flyway
+- Flyway Database Migrations
 - Containerização
 - Configuração por variáveis de ambiente
+- Single Page Application
+- Token público temporário
 - Separação entre frontend e backend
+- CI com GitHub Actions
 - Conventional Commits
 - Evolução incremental por sprints
 
