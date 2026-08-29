@@ -20,6 +20,13 @@ android {
         versionCode = 1
         versionName = "1.0"
 
+        // Android Emulator -> backend Spring Boot executando na máquina host.
+        buildConfigField(
+            "String",
+            "ROTACERTA_API_URL",
+            "\"http://10.0.2.2:8080/\""
+        )
+
         testInstrumentationRunner =
             "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -41,6 +48,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     packaging {
@@ -71,6 +79,7 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.7")
 
     // Navigation
     implementation("androidx.navigation:navigation-compose:2.8.5")
@@ -86,6 +95,10 @@ dependencies {
     implementation("com.google.dagger:hilt-android:2.57.1")
     kapt("com.google.dagger:hilt-compiler:2.57.1")
     implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
+
+    // API REST — integração com Spring Boot
+    implementation("com.squareup.retrofit2:retrofit:2.11.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.11.0")
 
     // CameraX
     val cameraXVersion = "1.4.1"
