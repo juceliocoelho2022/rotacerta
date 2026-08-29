@@ -1,23 +1,32 @@
+import axios from 'axios'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   AlertTriangle,
+  ArrowRight,
   CalendarDays,
+  CheckCircle2,
   Clock3,
   ExternalLink,
   Eye,
+  MapPin,
   PackageCheck,
   Plus,
   RefreshCcw,
+  Route as RouteIcon,
   Search,
   ShoppingCart,
-  Truck
+  Truck,
+  UserCheck
 } from 'lucide-react'
 import { OrderCreateModal } from '../components/OrderCreateModal'
 import { StatusBadge } from '../components/StatusBadge'
 import {
   api,
+  type DeliveryStatus,
   type DeliveryType,
+  type DispatchAssignment,
+  type DispatchReadiness,
   type Order,
   type OrderDetail,
   type OrderPriority
@@ -38,6 +47,13 @@ const deliveryTypeLabel: Record<DeliveryType, string> = {
   SCHEDULED: 'Agendada'
 }
 
+const nextOperationalStep: Partial<Record<DeliveryStatus, { label: string; status: DeliveryStatus }>> = {
+  ORDER_CREATED: { label: 'Aprovar pagamento', status: 'PAYMENT_APPROVED' },
+  PAYMENT_APPROVED: { label: 'Iniciar separação', status: 'PICKING' },
+  PICKING: { label: 'Iniciar embalagem', status: 'PACKING' },
+  PACKING: { label: 'Liberar para despacho', status: 'READY_FOR_SHIPMENT' }
+}
+
 function formatMoney(value: number) {
   const normalized = Number(value)
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number.isFinite(normalized) ? normalized : 0)
@@ -52,11 +68,21 @@ function formatDate(value: string | null | undefined) {
   return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short' }).format(new Date(`${value}T12:00:00`))
 }
 
+function errorMessage(error: unknown, fallback: string) {
+  if (axios.isAxiosError(error)) {
+    const data = error.response?.data as { message?: string; error?: string } | string | undefined
+    if (typeof data === 'string' && data.trim()) return data
+    if (data && typeof data === 'object') return data.message || data.error || fallback
+  }
+  return fallback
+}
+
 export function Orders() {
   const navigate = useNavigate()
   const [orders, setOrders] = useState<Order[]>([])
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [detail, setDetail] = useState<OrderDetail | null>(null)
+  const [dispatch, setDispatch] = useState<DispatchReadiness | null>(null)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('ALL')
   const [priorityFilter, setPriorityFilter] = useState('ALL')
@@ -65,6 +91,8 @@ export function Orders() {
   const [detailLoading, setDetailLoading] = useState(false)
   const [createOpen, setCreateOpen] = useState(false)
   const [liveLoadingId, setLiveLoadingId] = useState<number | null>(null)
+  const [workflowLoading, setWorkflowLoading] = useState(false)
+  const [dispatchLoading, setDispatchLoading] = useState(false)
   const [message, setMessage] = useState('')
 
   const loadOrders = useCallback(async () => {
@@ -91,22 +119,74 @@ export function Orders() {
     }
   }, [])
 
+  const loadDispatchReadiness = useCallback(async (id: number) => {
+    try {
+      const response = await api.get<DispatchReadiness>(`/api/dispatch/orders/${id}/readiness`)
+      setDispatch(response.data)
+    } catch {
+      setDispatch(null)
+    }
+  }, [])
+
   useEffect(() => { loadOrders() }, [loadOrders])
 
   useEffect(() => {
     if (!selectedId) {
       setDetail(null)
+      setDispatch(null)
       return
     }
-    loadDetail(selectedId).catch(() => setMessage('Não foi possível carregar os detalhes do pedido.'))
-  }, [loadDetail, selectedId])
+    Promise.all([loadDetail(selectedId), loadDispatchReadiness(selectedId)])
+      .catch(() => setMessage('Não foi possível carregar todos os detalhes do pedido.'))
+  }, [loadDetail, loadDispatchReadiness, selectedId])
+
+  async function refreshSelected(orderId: number) {
+    await Promise.all([
+      loadOrders(),
+      loadDetail(orderId),
+      loadDispatchReadiness(orderId)
+    ])
+  }
 
   async function handleCreated(orderId: number) {
     setCreateOpen(false)
-    await loadOrders()
     setSelectedId(orderId)
-    await loadDetail(orderId)
+    await refreshSelected(orderId)
     setMessage('Pedido criado com sucesso e registrado como ORDER_CREATED.')
+  }
+
+  async function progressOrder() {
+    if (!detail) return
+    const step = nextOperationalStep[detail.status]
+    if (!step) return
+
+    setWorkflowLoading(true)
+    try {
+      await api.patch(`/api/deliveries/${detail.id}/status`, {
+        status: step.status,
+        location: 'Centro operacional RotaCerta'
+      })
+      await refreshSelected(detail.id)
+      setMessage(`Pedido atualizado para ${step.status}.`)
+    } catch (error) {
+      setMessage(errorMessage(error, 'Não foi possível avançar o fluxo operacional do pedido.'))
+    } finally {
+      setWorkflowLoading(false)
+    }
+  }
+
+  async function assignSmartDispatch() {
+    if (!detail) return
+    setDispatchLoading(true)
+    try {
+      const response = await api.post<DispatchAssignment>(`/api/dispatch/orders/${detail.id}/assign`)
+      await refreshSelected(detail.id)
+      setMessage(`Smart Dispatch atribuiu ${response.data.driverName}. ETA estimado: ${response.data.etaMinutes} min.`)
+    } catch (error) {
+      setMessage(errorMessage(error, 'Não foi possível atribuir um motorista automaticamente.'))
+    } finally {
+      setDispatchLoading(false)
+    }
   }
 
   async function openLiveTracking(id: number) {
@@ -149,6 +229,8 @@ export function Orders() {
     ['Alta prioridade', attention, AlertTriangle]
   ] as const
 
+  const currentStep = detail ? nextOperationalStep[detail.status] : undefined
+
   return (
     <div className="ordersPage">
       <section className="ordersHeader">
@@ -163,12 +245,12 @@ export function Orders() {
       </section>
 
       {attention > 0 && (
-        <section className="ordersAttention"><AlertTriangle size={18}/><div><strong>{attention} pedido(s) de alta prioridade exigem atenção</strong><span>Use prioridade, modalidade e janela de entrega para orientar o processamento antes do Smart Dispatch.</span></div></section>
+        <section className="ordersAttention"><AlertTriangle size={18}/><div><strong>{attention} pedido(s) de alta prioridade exigem atenção</strong><span>Prioridade, modalidade e janela de entrega agora participam do score do Smart Dispatch.</span></div></section>
       )}
 
       <section className="ordersToolbar">
         <label className="ordersSearch"><Search size={16}/><input value={search} onChange={event => setSearch(event.target.value)} placeholder="Buscar pedido, cliente ou rastreio..." /></label>
-        <select value={statusFilter} onChange={event => setStatusFilter(event.target.value)}><option value="ALL">Status</option><option value="ORDER_CREATED">Criado</option><option value="PICKING">Separação</option><option value="PACKING">Embalagem</option><option value="READY_FOR_SHIPMENT">Pronto</option><option value="IN_TRANSIT">Em trânsito</option><option value="OUT_FOR_DELIVERY">Saiu para entrega</option><option value="DELIVERED">Entregue</option><option value="CANCELLED">Cancelado</option></select>
+        <select value={statusFilter} onChange={event => setStatusFilter(event.target.value)}><option value="ALL">Status</option><option value="ORDER_CREATED">Criado</option><option value="PAYMENT_APPROVED">Pagamento aprovado</option><option value="PICKING">Separação</option><option value="PACKING">Embalagem</option><option value="READY_FOR_SHIPMENT">Pronto</option><option value="SHIPPED">Despachado</option><option value="IN_TRANSIT">Em trânsito</option><option value="OUT_FOR_DELIVERY">Saiu para entrega</option><option value="DELIVERED">Entregue</option><option value="CANCELLED">Cancelado</option></select>
         <select value={priorityFilter} onChange={event => setPriorityFilter(event.target.value)}><option value="ALL">Prioridade</option><option value="NORMAL">Normal</option><option value="HIGH">Alta</option><option value="URGENT">Urgente</option></select>
         <select value={typeFilter} onChange={event => setTypeFilter(event.target.value)}><option value="ALL">Modalidade</option><option value="STANDARD">Standard</option><option value="EXPRESS">Express</option><option value="SAME_DAY">Same-Day</option><option value="SCHEDULED">Agendada</option></select>
       </section>
@@ -219,6 +301,33 @@ export function Orders() {
                   <section className="orderDeliveryPanel">
                     <div className="orderSectionTitle"><strong>Entrega</strong><CalendarDays size={15}/></div>
                     {detail.delivery ? <><div className="orderDestination"><strong>{detail.delivery.addressLabel}</strong><span>{detail.delivery.street}, {detail.delivery.number}{detail.delivery.complement ? ` • ${detail.delivery.complement}` : ''}</span><small>{detail.delivery.district ? `${detail.delivery.district} • ` : ''}{detail.delivery.city}/{detail.delivery.state} {detail.delivery.zipCode ?? ''}</small></div><div className="orderDeliveryMeta"><span><small>Data</small><strong>{formatDate(detail.delivery.deliveryDate)}</strong></span><span><small>Janela</small><strong>{detail.delivery.windowStart && detail.delivery.windowEnd ? `${detail.delivery.windowStart.slice(0, 5)} — ${detail.delivery.windowEnd.slice(0, 5)}` : 'Sem restrição'}</strong></span></div>{detail.delivery.instructions && <div className="orderInstruction"><small>Instruções</small><span>{detail.delivery.instructions}</span></div>}</> : <div className="orderEmptySmall">Sem snapshot de entrega.</div>}
+                  </section>
+
+                  <section className="orderDispatchPanel">
+                    <div className="orderSectionTitle"><strong>Smart Dispatch</strong><RouteIcon size={16}/></div>
+                    {dispatch ? (
+                      <>
+                        <div className={`dispatchReadiness ${dispatch.assigned ? 'assigned' : dispatch.hasCoordinates ? 'ready' : 'blocked'}`}>
+                          <span>{dispatch.assigned ? <UserCheck size={18}/> : dispatch.hasCoordinates ? <MapPin size={18}/> : <AlertTriangle size={18}/>}</span>
+                          <div><strong>{dispatch.assigned ? 'Motorista atribuído' : dispatch.dispatchableStatus ? 'Despacho operacional' : 'Preparação do pedido'}</strong><small>{dispatch.message}</small></div>
+                        </div>
+
+                        {dispatch.assigned ? (
+                          <div className="dispatchAssignmentSummary">
+                            <span><small>Motorista</small><strong>{dispatch.driverName}</strong></span>
+                            <span><small>ETA</small><strong>{dispatch.etaMinutes ?? '—'} min</strong></span>
+                            <button onClick={() => navigate('/routes')}><RouteIcon size={14}/> Abrir rotas</button>
+                          </div>
+                        ) : (
+                          <div className="dispatchActions">
+                            {currentStep && <button disabled={workflowLoading} onClick={progressOrder}><CheckCircle2 size={14}/>{workflowLoading ? 'Atualizando...' : currentStep.label}<ArrowRight size={13}/></button>}
+                            {dispatch.dispatchableStatus && <button className="primary" disabled={!dispatch.hasCoordinates || dispatchLoading} onClick={assignSmartDispatch}><Truck size={14}/>{dispatchLoading ? 'Calculando...' : 'Atribuir motorista'}</button>}
+                          </div>
+                        )}
+
+                        <div className="dispatchFactors"><span>Prioridade: <b>{priorityLabel[detail.priority]}</b></span><span>Modalidade: <b>{deliveryTypeLabel[detail.deliveryType]}</b></span><span>Janela: <b>{detail.delivery?.windowStart && detail.delivery?.windowEnd ? `${detail.delivery.windowStart.slice(0, 5)}–${detail.delivery.windowEnd.slice(0, 5)}` : 'sem restrição'}</b></span></div>
+                      </>
+                    ) : <div className="orderEmptySmall">Consultando prontidão do despacho...</div>}
                   </section>
 
                   <section className="orderTrackingPanel"><small>Código de rastreio</small><strong>{detail.trackingCode}</strong><div><button onClick={() => navigate('/tracking')}>Acompanhar</button><button disabled={detail.status !== 'OUT_FOR_DELIVERY' || liveLoadingId === detail.id} onClick={() => openLiveTracking(detail.id)}><ExternalLink size={14}/>{liveLoadingId === detail.id ? 'Gerando...' : 'RotaCerta Live'}</button></div></section>
