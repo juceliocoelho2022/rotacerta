@@ -570,7 +570,7 @@ rotacerta/
 
 ## ✅ Status atual
 
-### Implementado
+### Implementado e validado
 
 - [x] Frontend React + TypeScript
 - [x] Backend Java 21 + Spring Boot
@@ -586,6 +586,7 @@ rotacerta/
 - [x] Preferências e janela de entrega
 - [x] Centro operacional de Pedidos
 - [x] Wizard de novo pedido
+- [x] Criação real de pedido pela interface
 - [x] Itens, prioridade e modalidade de entrega
 - [x] Snapshot do destino
 - [x] Gestão operacional de Entregas
