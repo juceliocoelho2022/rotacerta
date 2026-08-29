@@ -1,6 +1,14 @@
 package com.rotacerta.api.model;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "delivery_locations")
@@ -33,6 +41,35 @@ public class DeliveryLocation {
     private String region;
 
     protected DeliveryLocation() {}
+
+    public DeliveryLocation(
+            OrderEntity order,
+            double latitude,
+            double longitude,
+            int priority,
+            int slaMinutes,
+            String destinationLabel,
+            String region
+    ) {
+        this.order = order;
+        updatePlanning(latitude, longitude, priority, slaMinutes, destinationLabel, region);
+    }
+
+    public void updatePlanning(
+            double latitude,
+            double longitude,
+            int priority,
+            int slaMinutes,
+            String destinationLabel,
+            String region
+    ) {
+        this.latitude = latitude;
+        this.longitude = longitude;
+        this.priority = Math.max(1, priority);
+        this.slaMinutes = Math.max(15, slaMinutes);
+        this.destinationLabel = destinationLabel;
+        this.region = region;
+    }
 
     public Long getId() { return id; }
     public OrderEntity getOrder() { return order; }
