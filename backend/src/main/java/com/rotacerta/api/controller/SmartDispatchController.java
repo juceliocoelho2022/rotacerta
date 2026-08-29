@@ -4,6 +4,7 @@ import com.rotacerta.api.dto.DispatchAssignmentResponse;
 import com.rotacerta.api.dto.DriverLocationUpdateRequest;
 import com.rotacerta.api.dto.DriverRouteResponse;
 import com.rotacerta.api.dto.OperationsMonitoringResponse;
+import com.rotacerta.api.dto.RouteOptimizationResponse;
 import com.rotacerta.api.service.SmartDispatchService;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -13,6 +14,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/dispatch")
@@ -29,6 +32,11 @@ public class SmartDispatchController {
         return smartDispatchService.monitoring();
     }
 
+    @PostMapping("/auto-plan")
+    public List<DispatchAssignmentResponse> autoPlan() {
+        return smartDispatchService.autoPlan();
+    }
+
     @PostMapping("/orders/{orderId}/assign")
     public DispatchAssignmentResponse assign(@PathVariable Long orderId) {
         return smartDispatchService.assignBestDriver(orderId);
@@ -42,6 +50,11 @@ public class SmartDispatchController {
     @GetMapping("/drivers/{driverId}/route")
     public DriverRouteResponse route(@PathVariable Long driverId) {
         return smartDispatchService.getOptimizedRoute(driverId);
+    }
+
+    @PostMapping("/drivers/{driverId}/route/optimize")
+    public RouteOptimizationResponse optimizeRoute(@PathVariable Long driverId) {
+        return smartDispatchService.optimizeRoute(driverId);
     }
 
     @PatchMapping("/drivers/{driverId}/location")
