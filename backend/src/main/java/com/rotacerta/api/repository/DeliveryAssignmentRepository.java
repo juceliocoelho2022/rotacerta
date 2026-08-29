@@ -8,5 +8,5 @@ import java.util.Optional;
 
 public interface DeliveryAssignmentRepository extends JpaRepository<DeliveryAssignment, Long> {
     Optional<DeliveryAssignment> findByOrderId(Long orderId);
-    List<DeliveryAssignment> findByDriverIdAndStatusOrderByAssignedAtAsc(Long driverId, String status);
+    List<DeliveryAssignment> findByDriverIdAndStatusOrderBySequencePositionAscAssignedAtAsc(Long driverId, String status);
 }
