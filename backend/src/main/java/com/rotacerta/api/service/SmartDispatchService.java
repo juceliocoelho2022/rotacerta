@@ -7,6 +7,7 @@ import com.rotacerta.api.dto.DriverRouteStopResponse;
 import com.rotacerta.api.dto.MonitoringDriverResponse;
 import com.rotacerta.api.dto.MonitoringOrderResponse;
 import com.rotacerta.api.dto.OperationsMonitoringResponse;
+import com.rotacerta.api.dto.RouteOptimizationResponse;
 import com.rotacerta.api.model.DeliveryAssignment;
 import com.rotacerta.api.model.DeliveryLocation;
 import com.rotacerta.api.model.DeliveryStatus;
@@ -34,9 +35,17 @@ public class SmartDispatchService {
 
     private static final double URBAN_AVERAGE_SPEED_KMH = 28.0;
     private static final int SERVICE_MINUTES_PER_STOP = 4;
+
     private static final Set<DeliveryStatus> IN_PROGRESS_STATUSES = Set.of(
             DeliveryStatus.PICKING,
             DeliveryStatus.PACKING,
+            DeliveryStatus.READY_FOR_SHIPMENT,
+            DeliveryStatus.SHIPPED,
+            DeliveryStatus.IN_TRANSIT,
+            DeliveryStatus.OUT_FOR_DELIVERY
+    );
+
+    private static final Set<DeliveryStatus> DISPATCHABLE_STATUSES = Set.of(
             DeliveryStatus.READY_FOR_SHIPMENT,
             DeliveryStatus.SHIPPED,
             DeliveryStatus.IN_TRANSIT,
@@ -98,6 +107,18 @@ public class SmartDispatchService {
         );
 
         return toResponse(assignment);
+    }
+
+    @Transactional
+    public List<DispatchAssignmentResponse> autoPlan() {
+        List<DispatchAssignmentResponse> assignments = new ArrayList<>();
+
+        orderRepository.findAll().stream()
+                .filter(order -> DISPATCHABLE_STATUSES.contains(order.getStatus()))
+                .filter(order -> assignmentRepository.findByOrderId(order.getId()).isEmpty())
+                .forEach(order -> assignments.add(assignBestDriver(order.getId())));
+
+        return assignments;
     }
 
     @Transactional(readOnly = true)
@@ -162,7 +183,9 @@ public class SmartDispatchService {
                         driver.getLongitude(),
                         driver.isAvailable(),
                         driver.getCurrentLoad(),
-                        driver.getMaxCapacity()
+                        driver.getMaxCapacity(),
+                        driver.getVehiclePlate(),
+                        driver.getVehicleModel()
                 ))
                 .toList();
 
@@ -195,22 +218,49 @@ public class SmartDispatchService {
         Driver driver = getDriver(driverId);
         driver.updateLocation(request.latitude(), request.longitude());
         driverRepository.save(driver);
-        return buildRoute(driver);
+        return buildRoute(driver, true);
     }
 
     @Transactional(readOnly = true)
     public DriverRouteResponse getOptimizedRoute(Long driverId) {
-        return buildRoute(getDriver(driverId));
+        return buildRoute(getDriver(driverId), true);
     }
 
-    private DriverRouteResponse buildRoute(Driver driver) {
-        List<DeliveryAssignment> remaining = new ArrayList<>(
-                assignmentRepository.findByDriverIdAndStatusOrderByAssignedAtAsc(
-                        driver.getId(),
-                        "ASSIGNED"
-                )
+    @Transactional(readOnly = true)
+    public RouteOptimizationResponse optimizeRoute(Long driverId) {
+        Driver driver = getDriver(driverId);
+        DriverRouteResponse currentRoute = buildRoute(driver, false);
+        DriverRouteResponse optimizedRoute = buildRoute(driver, true);
+
+        BigDecimal savedDistance = currentRoute.totalDistanceKm()
+                .subtract(optimizedRoute.totalDistanceKm())
+                .max(BigDecimal.ZERO)
+                .setScale(2, RoundingMode.HALF_UP);
+
+        int savedMinutes = Math.max(
+                0,
+                currentRoute.estimatedRouteMinutes() - optimizedRoute.estimatedRouteMinutes()
         );
 
+        return new RouteOptimizationResponse(
+                driver.getId(),
+                driver.getName(),
+                currentRoute.totalDistanceKm(),
+                optimizedRoute.totalDistanceKm(),
+                savedDistance,
+                currentRoute.estimatedRouteMinutes(),
+                optimizedRoute.estimatedRouteMinutes(),
+                savedMinutes,
+                currentRoute,
+                optimizedRoute
+        );
+    }
+
+    private DriverRouteResponse buildRoute(Driver driver, boolean optimize) {
+        List<DeliveryAssignment> source = assignmentRepository
+                .findByDriverIdAndStatusOrderByAssignedAtAsc(driver.getId(), "ASSIGNED");
+
+        List<DeliveryAssignment> remaining = new ArrayList<>(source);
         List<DriverRouteStopResponse> stops = new ArrayList<>();
         double currentLat = driver.getLatitude();
         double currentLon = driver.getLongitude();
@@ -219,20 +269,25 @@ public class SmartDispatchService {
         int position = 1;
 
         while (!remaining.isEmpty()) {
-            final double originLat = currentLat;
-            final double originLon = currentLon;
+            DeliveryAssignment next;
 
-            DeliveryAssignment next = remaining.stream()
-                    .min(Comparator.comparingDouble(assignment -> {
-                        DeliveryLocation location = getLocation(assignment.getOrder().getId());
-                        return distanceKm(
-                                originLat,
-                                originLon,
-                                location.getLatitude(),
-                                location.getLongitude()
-                        );
-                    }))
-                    .orElseThrow();
+            if (optimize) {
+                final double originLat = currentLat;
+                final double originLon = currentLon;
+                next = remaining.stream()
+                        .min(Comparator.comparingDouble(assignment -> {
+                            DeliveryLocation location = getLocation(assignment.getOrder().getId());
+                            return distanceKm(
+                                    originLat,
+                                    originLon,
+                                    location.getLatitude(),
+                                    location.getLongitude()
+                            );
+                        }))
+                        .orElseThrow();
+            } else {
+                next = remaining.get(0);
+            }
 
             DeliveryLocation location = getLocation(next.getOrder().getId());
             double legDistance = distanceKm(
@@ -299,6 +354,8 @@ public class SmartDispatchService {
             DeliveryLocation location,
             DeliveryAssignment assignment
     ) {
+        Risk risk = riskFor(order, location, assignment);
+
         return new MonitoringOrderResponse(
                 order.getId(),
                 order.getOrderNumber(),
@@ -306,14 +363,62 @@ public class SmartDispatchService {
                 order.getStatus(),
                 location.getLatitude(),
                 location.getLongitude(),
+                location.getDestinationLabel(),
+                location.getRegion(),
                 location.getPriority(),
                 location.getSlaMinutes(),
                 assignment == null ? null : assignment.getDriver().getId(),
                 assignment == null ? null : assignment.getDriver().getName(),
                 assignment == null ? null : assignment.getEtaMinutes(),
                 assignment == null ? null : assignment.getDistanceKm(),
-                assignment == null ? null : assignment.getScore()
+                assignment == null ? null : assignment.getScore(),
+                risk.percent(),
+                risk.level(),
+                risk.reason()
         );
+    }
+
+    private Risk riskFor(
+            OrderEntity order,
+            DeliveryLocation location,
+            DeliveryAssignment assignment
+    ) {
+        if (order.getStatus() == DeliveryStatus.DELIVERED) {
+            return new Risk(0, "LOW", "Entrega concluída");
+        }
+
+        if (order.getStatus() == DeliveryStatus.DELIVERY_FAILED) {
+            return new Risk(100, "CRITICAL", "Falha de entrega registrada");
+        }
+
+        if (assignment == null) {
+            if (DISPATCHABLE_STATUSES.contains(order.getStatus())) {
+                return new Risk(78, "HIGH", "Pedido pronto para rota sem motorista atribuído");
+            }
+            return new Risk(25, "LOW", "Entrega ainda não entrou na etapa de despacho");
+        }
+
+        double slaRatio = (double) assignment.getEtaMinutes() / location.getSlaMinutes();
+        double loadRatio = assignment.getDriver().loadRatio();
+        int risk = (int) Math.round(
+                Math.min(
+                        99,
+                        (slaRatio * 65.0)
+                                + (loadRatio * 18.0)
+                                + (location.getPriority() * 3.0)
+                )
+        );
+
+        if (slaRatio > 1.0) {
+            return new Risk(Math.max(90, risk), "CRITICAL", "ETA calculado ultrapassa o SLA");
+        }
+        if (slaRatio >= 0.85) {
+            return new Risk(Math.max(75, risk), "HIGH", "ETA está próximo do limite de SLA");
+        }
+        if (loadRatio >= 0.75) {
+            return new Risk(Math.max(60, risk), "MEDIUM", "Motorista opera próximo da capacidade máxima");
+        }
+        return new Risk(Math.max(15, Math.min(59, risk)), "LOW", "Operação dentro da margem prevista");
     }
 
     private Driver getDriver(Long driverId) {
@@ -370,5 +475,11 @@ public class SmartDispatchService {
             double distanceKm,
             double score,
             int etaMinutes
+    ) {}
+
+    private record Risk(
+            int percent,
+            String level,
+            String reason
     ) {}
 }
