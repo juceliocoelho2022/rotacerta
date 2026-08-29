@@ -9,6 +9,5 @@ public record MonitoringDriverResponse(
         int currentLoad,
         int maxCapacity,
         String vehiclePlate,
-        String vehicleModel,
-        String photoUrl
+        String vehicleModel
 ) {}
