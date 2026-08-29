@@ -8,6 +8,7 @@ import {
   MapPin,
   MoreHorizontal,
   PackageCheck,
+  Pencil,
   Phone,
   Plus,
   RefreshCcw,
@@ -18,6 +19,7 @@ import {
   UsersRound
 } from 'lucide-react'
 import { CustomerFormModal, type CustomerFormMode } from '../components/CustomerFormModal'
+import { PreferenceFormModal } from '../components/PreferenceFormModal'
 import { StatusBadge } from '../components/StatusBadge'
 import {
   api,
@@ -70,6 +72,7 @@ export function Customers() {
   const [detail, setDetail] = useState<CustomerDetail | null>(null)
   const [tab, setTab] = useState<CustomerTab>('summary')
   const [formMode, setFormMode] = useState<CustomerFormMode | null>(null)
+  const [preferenceOpen, setPreferenceOpen] = useState(false)
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState('ALL')
   const [city, setCity] = useState('ALL')
@@ -116,6 +119,13 @@ export function Customers() {
     if (savedMode === 'address') setTab('addresses')
     if (savedMode === 'recipient') setTab('summary')
     setMessage(savedMode === 'customer' ? 'Cliente cadastrado com sucesso.' : savedMode === 'address' ? 'Endereço adicionado com sucesso.' : 'Recebedor autorizado cadastrado com sucesso.')
+  }
+
+  async function handlePreferenceSaved(customerId: number) {
+    await loadDetail(customerId)
+    setPreferenceOpen(false)
+    setTab('preferences')
+    setMessage('Preferências de entrega atualizadas com sucesso.')
   }
 
   const cities = useMemo(
@@ -249,7 +259,21 @@ export function Customers() {
 
               {tab === 'history' && <div className="customerTabContent"><div className="sectionTitle"><strong>Histórico de pedidos</strong></div><CustomerOrders orders={detail.orders} /></div>}
 
-              {tab === 'preferences' && <div className="customerTabContent"><div className="preferenceGrid"><span><small>Notificações</small><strong>{detail.preference.notificationsEnabled ? 'Ativadas' : 'Desativadas'}</strong></span><span><small>Canal</small><strong>{detail.preference.notificationChannel}</strong></span><span><small>Janela preferencial</small><strong>{detail.preference.preferredStartTime && detail.preference.preferredEndTime ? `${detail.preference.preferredStartTime.slice(0,5)} — ${detail.preference.preferredEndTime.slice(0,5)}` : 'Sem restrição'}</strong></span><span className="wide"><small>Instruções</small><strong>{detail.preference.deliveryInstructions ?? 'Nenhuma instrução especial.'}</strong></span></div></div>}
+              {tab === 'preferences' && (
+                <div className="customerTabContent">
+                  <div className="sectionTitle">
+                    <strong>Preferências de entrega</strong>
+                    <button onClick={() => setPreferenceOpen(true)}><Pencil size={14}/> Editar</button>
+                  </div>
+                  <div className="preferenceGrid">
+                    <span><small>Notificações</small><strong>{detail.preference.notificationsEnabled ? 'Ativadas' : 'Desativadas'}</strong></span>
+                    <span><small>Canal</small><strong>{detail.preference.notificationChannel}</strong></span>
+                    <span><small>Janela preferencial</small><strong>{detail.preference.preferredStartTime && detail.preference.preferredEndTime ? `${detail.preference.preferredStartTime.slice(0,5)} — ${detail.preference.preferredEndTime.slice(0,5)}` : 'Sem restrição'}</strong></span>
+                    <span className="wide"><small>Instruções</small><strong>{detail.preference.deliveryInstructions ?? 'Nenhuma instrução especial.'}</strong></span>
+                  </div>
+                  <div className="customerPreferenceNote">A janela preferencial ficará disponível para a próxima etapa de integração com o planejamento de Pedidos e o Route Engine.</div>
+                </div>
+              )}
 
               {tab === 'occurrences' && <div className="customerTabContent"><div className="sectionTitle"><strong>Ocorrências logísticas</strong></div>{occurrenceOrders.length ? <CustomerOrders orders={occurrenceOrders} /> : <div className="customerEmpty success">Nenhuma ocorrência registrada para este cliente.</div>}</div>}
             </>
@@ -258,6 +282,7 @@ export function Customers() {
       </section>
 
       {formMode && <CustomerFormModal mode={formMode} customerId={selectedId} onClose={() => setFormMode(null)} onSaved={handleSaved} />}
+      {preferenceOpen && detail && <PreferenceFormModal customerId={detail.id} preference={detail.preference} onClose={() => setPreferenceOpen(false)} onSaved={handlePreferenceSaved} />}
     </div>
   )
 }
