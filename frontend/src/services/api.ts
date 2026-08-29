@@ -150,6 +150,20 @@ export interface DispatchAssignment {
   assignedAt: string
 }
 
+export interface DispatchReadiness {
+  orderId: number
+  status: DeliveryStatus
+  priority: OrderPriority
+  deliveryType: DeliveryType
+  dispatchableStatus: boolean
+  hasCoordinates: boolean
+  assigned: boolean
+  driverId: number | null
+  driverName: string | null
+  etaMinutes: number | null
+  message: string
+}
+
 export interface DriverRouteStop {
   position: number
   orderId: number
