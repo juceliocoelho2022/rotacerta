@@ -256,9 +256,34 @@ public class SmartDispatchService {
         );
     }
 
+    @Transactional
+    public DriverRouteResponse applyOptimizedRoute(Long driverId) {
+        Driver driver = getDriver(driverId);
+        DriverRouteResponse optimized = buildRoute(driver, true);
+
+        Map<Long, Integer> positionByOrder = optimized.stops().stream()
+                .collect(Collectors.toMap(
+                        DriverRouteStopResponse::orderId,
+                        DriverRouteStopResponse::position
+                ));
+
+        List<DeliveryAssignment> assignments = assignmentRepository
+                .findByDriverIdAndStatusOrderBySequencePositionAscAssignedAtAsc(driverId, "ASSIGNED");
+
+        assignments.forEach(assignment -> {
+            Integer position = positionByOrder.get(assignment.getOrder().getId());
+            if (position != null) {
+                assignment.setSequencePosition(position);
+            }
+        });
+
+        assignmentRepository.saveAll(assignments);
+        return buildRoute(driver, false);
+    }
+
     private DriverRouteResponse buildRoute(Driver driver, boolean optimize) {
         List<DeliveryAssignment> source = assignmentRepository
-                .findByDriverIdAndStatusOrderByAssignedAtAsc(driver.getId(), "ASSIGNED");
+                .findByDriverIdAndStatusOrderBySequencePositionAscAssignedAtAsc(driver.getId(), "ASSIGNED");
 
         List<DeliveryAssignment> remaining = new ArrayList<>(source);
         List<DriverRouteStopResponse> stops = new ArrayList<>();
