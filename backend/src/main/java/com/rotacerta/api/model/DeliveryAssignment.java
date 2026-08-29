@@ -32,6 +32,9 @@ public class DeliveryAssignment {
     @Column(nullable = false, length = 30)
     private String status;
 
+    @Column(name = "sequence_position", nullable = false)
+    private int sequencePosition;
+
     @Column(name = "assigned_at", nullable = false)
     private OffsetDateTime assignedAt;
 
@@ -50,6 +53,7 @@ public class DeliveryAssignment {
         this.score = score;
         this.etaMinutes = etaMinutes;
         this.status = "ASSIGNED";
+        this.sequencePosition = 999;
         this.assignedAt = OffsetDateTime.now();
     }
 
@@ -60,5 +64,10 @@ public class DeliveryAssignment {
     public BigDecimal getScore() { return score; }
     public int getEtaMinutes() { return etaMinutes; }
     public String getStatus() { return status; }
+    public int getSequencePosition() { return sequencePosition; }
     public OffsetDateTime getAssignedAt() { return assignedAt; }
+
+    public void setSequencePosition(int sequencePosition) {
+        this.sequencePosition = sequencePosition;
+    }
 }
