@@ -59,6 +59,8 @@ export interface MonitoringDriver {
   available: boolean
   currentLoad: number
   maxCapacity: number
+  vehiclePlate: string
+  vehicleModel: string
 }
 
 export interface MonitoringOrder {
@@ -68,6 +70,8 @@ export interface MonitoringOrder {
   status: DeliveryStatus
   latitude: number
   longitude: number
+  destinationLabel: string
+  region: string
   priority: number
   slaMinutes: number
   driverId: number | null
@@ -75,6 +79,9 @@ export interface MonitoringOrder {
   etaMinutes: number | null
   distanceKm: number | null
   score: number | null
+  riskPercent: number
+  riskLevel: string
+  riskReason: string
 }
 
 export interface OperationsMonitoring {
@@ -109,7 +116,7 @@ export interface DriverRouteStop {
   longitude: number
   priority: number
   distanceFromPreviousKm: number
-  etaMinutes: number
+  etaFromNowMinutes: number
 }
 
 export interface DriverRoute {
@@ -117,6 +124,19 @@ export interface DriverRoute {
   driverName: string
   totalStops: number
   totalDistanceKm: number
-  totalEtaMinutes: number
+  estimatedRouteMinutes: number
   stops: DriverRouteStop[]
+}
+
+export interface RouteOptimization {
+  driverId: number
+  driverName: string
+  currentDistanceKm: number
+  optimizedDistanceKm: number
+  savedDistanceKm: number
+  currentEstimatedMinutes: number
+  optimizedEstimatedMinutes: number
+  savedMinutes: number
+  currentRoute: DriverRoute
+  optimizedRoute: DriverRoute
 }
