@@ -11,66 +11,180 @@
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169E1)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED)
 
-## 📌 Sobre o projeto
+## 📌 Visão geral
 
-**RotaCerta** é uma plataforma Full Stack para gestão logística de pedidos de e-commerce, rastreamento de entregas e acompanhamento operacional do fluxo entre loja, centro de distribuição, transportadora, entregador e cliente final.
+**RotaCerta** é uma plataforma Full Stack para gestão de pedidos, clientes, entregas, despacho inteligente, rotas e rastreamento de última milha.
 
-A solução integra **React + TypeScript**, **Java 21 + Spring Boot**, **PostgreSQL**, **Flyway**, **Docker Compose** e um aplicativo Android em evolução com **Kotlin + Jetpack Compose**.
+O projeto simula o fluxo operacional de um e-commerce desde a criação do pedido até a confirmação da entrega, mantendo separadas três responsabilidades importantes:
 
-O principal diferencial atual é o **RotaCerta Live**: quando uma encomenda sai para entrega, o sistema gera um link público temporário e seguro para o cliente acompanhar o pedido e autorizar previamente outra pessoa — familiar, vizinho, porteiro ou terceiro — caso não esteja no endereço. O objetivo é reduzir tentativas de entrega frustradas, reentregas e custo operacional.
+```text
+Pedido   = demanda comercial e logística
+Entrega  = execução operacional
+Rota     = deslocamento e sequência de paradas
+```
+
+A solução integra **React + TypeScript**, **Java 21 + Spring Boot**, **PostgreSQL 17**, **Flyway**, **Docker Compose** e um aplicativo Android em evolução com **Kotlin + Jetpack Compose**.
+
+O objetivo é demonstrar, em um único projeto de portfólio, conceitos de **engenharia de software, APIs REST, modelagem de domínio, persistência, logística, otimização operacional, rastreamento e experiência do cliente**.
 
 ---
 
-## 🚀 RotaCerta Live
+## ✨ Principais módulos
 
-Fluxo implementado e validado localmente:
+### 🧭 Dashboard executivo
+
+Painel central com visão operacional dos pedidos e entregas:
+
+- total de pedidos;
+- pedidos em preparação;
+- entregas em trânsito;
+- pedidos que saíram para entrega;
+- entregas concluídas;
+- falhas e ocorrências;
+- indicadores derivados de dados reais da API.
+
+### 👥 Customer Experience
+
+Módulo `/customers` com gestão real de clientes:
+
+- cadastro de cliente;
+- telefone, e-mail, status e avaliação;
+- múltiplos endereços;
+- endereço principal;
+- pessoas autorizadas a receber;
+- histórico de pedidos;
+- preferências de entrega;
+- canal de notificação;
+- janela preferencial de recebimento;
+- instruções de entrega;
+- KPIs por cliente;
+- painel lateral operacional.
+
+### 🛒 Pedidos
+
+Módulo `/orders` com centro operacional e criação completa de pedidos.
+
+Recursos implementados:
+
+- KPIs reais da API;
+- busca por pedido, cliente ou código de rastreio;
+- filtros por status, prioridade e modalidade;
+- prioridades `NORMAL`, `HIGH` e `URGENT`;
+- modalidades `STANDARD`, `EXPRESS`, `SAME_DAY` e `SCHEDULED`;
+- múltiplos itens por pedido;
+- quantidade, preço, peso e volume por item;
+- cálculo de valor total, peso total, volume total e volumes;
+- snapshot do endereço de entrega;
+- data e janela de entrega por pedido;
+- instruções herdadas das preferências do cliente;
+- painel lateral com visão detalhada do pedido;
+- integração com RotaCerta Live quando o pedido está `OUT_FOR_DELIVERY`.
+
+#### Wizard de criação
 
 ```text
-Pedido OUT_FOR_DELIVERY
-        ↓
-Spring Boot cria sessão Live
-        ↓
+Cliente
+   ↓
+Produtos
+   ↓
+Endereço
+   ↓
+Entrega
+   ↓
+Revisão
+   ↓
+Criar pedido
+```
+
+A criação é conectada diretamente a `POST /api/orders` e o novo pedido entra no fluxo com status `ORDER_CREATED`.
+
+### 🚚 Entregas
+
+Módulo `/deliveries` para acompanhamento operacional:
+
+- pedidos elegíveis à operação logística;
+- filtros e monitoramento;
+- atribuição de motorista;
+- recálculo operacional;
+- acompanhamento do status da entrega;
+- integração com o Smart Dispatch.
+
+### 🗺️ Rotas
+
+Módulo `/routes` para visualizar e otimizar as paradas de cada motorista:
+
+- rota atual;
+- sequência de paradas;
+- distância estimada;
+- tempo estimado;
+- comparação antes/depois da otimização;
+- aplicação da nova sequência;
+- representação visual operacional da rota.
+
+> O cálculo atual utiliza coordenadas persistidas, distância de Haversine, velocidade média configurada e carga do motorista. **Trânsito externo em tempo real ainda não está integrado.**
+
+### ⚡ Smart Dispatch
+
+Motor de despacho para recomendar e atribuir pedidos a motoristas disponíveis.
+
+O cálculo considera atualmente:
+
+- distância entre motorista e destino;
+- capacidade e carga atual;
+- prioridade do pedido/local;
+- SLA operacional;
+- ETA estimado;
+- risco operacional;
+- disponibilidade do motorista.
+
+Fluxo:
+
+```text
+Pedido elegível
+      ↓
+Localização de entrega
+      ↓
+Motoristas disponíveis
+      ↓
+Score de despacho
+      ↓
+Melhor candidato
+      ↓
+Atribuição
+      ↓
+Rota do motorista
+      ↓
+Otimização das paradas
+```
+
+### 📍 RotaCerta Live
+
+Quando a encomenda sai para entrega, o sistema pode gerar um link público temporário para acompanhamento.
+
+```text
+OUT_FOR_DELIVERY
+      ↓
+Sessão Live
+      ↓
 Token público temporário
-        ↓
-Cliente acessa /live/{token}
-        ↓
-Acompanha timeline da entrega
-        ↓
-Autoriza outro recebedor
-        ↓
-Spring Boot valida a solicitação
-        ↓
-PostgreSQL persiste a instrução
-        ↓
-Página Live exibe o recebedor autorizado
+      ↓
+/live/{token}
+      ↓
+Timeline da entrega
+      ↓
+Recebedor alternativo
 ```
 
-### Recursos atuais
+Recursos atuais:
 
-- link público sem expor o ID sequencial do pedido;
-- token aleatório de alta entropia;
-- expiração automática em 48 horas;
-- encerramento da sessão quando a entrega termina, falha, é devolvida ou cancelada;
-- página pública responsiva em `/live/:token`;
-- timeline dos eventos logísticos;
-- atualização automática a cada 30 segundos;
-- autorização de familiar, vizinho, porteiro ou outra pessoa;
-- campo de instruções para a entrega;
-- persistência no PostgreSQL;
-- botão **Abrir Live** no painel operacional;
-- CI para frontend e backend.
-
-Exemplo de uso:
-
-```text
-Cliente não estará em casa
-        ↓
-Autoriza: Maria Souza
-Relação: Vizinho
-Instrução: Pode receber a encomenda na casa ao lado
-        ↓
-Autorização registrada com sucesso
-```
+- token público aleatório;
+- expiração automática;
+- timeline da entrega;
+- atualização periódica da página;
+- autorização de familiar, vizinho, porteiro ou terceiro;
+- instruções para o entregador;
+- encerramento da sessão quando o fluxo termina;
+- persistência no PostgreSQL.
 
 Documentação técnica: [`docs/ROTACERTA_LIVE.md`](docs/ROTACERTA_LIVE.md)
 
@@ -80,147 +194,120 @@ Documentação técnica: [`docs/ROTACERTA_LIVE.md`](docs/ROTACERTA_LIVE.md)
 
 ### Frontend
 
-- **React 19**
-- **TypeScript**
-- **Vite**
-- **React Router**
-- **Axios**
-- **Lucide React**
-- **CSS responsivo**
-- **Nginx**
+- React 19
+- TypeScript
+- Vite
+- React Router
+- Axios
+- Lucide React
+- CSS responsivo
+- Nginx
 
 ### Backend
 
-- **Java 21**
-- **Spring Boot 3.5.5**
-- **Spring Web**
-- **Spring Data JPA**
-- **Spring Validation**
-- **Spring Transaction Management**
-- **Spring Boot Actuator**
-- **Hibernate ORM**
-- **Maven**
-- **Swagger / OpenAPI**
+- Java 21
+- Spring Boot 3.5.5
+- Spring Web
+- Spring Data JPA
+- Spring Validation
+- Spring Transactions
+- Spring Boot Actuator
+- Hibernate ORM
+- Maven
+- Swagger / OpenAPI
 
 ### Banco de dados
 
-- **PostgreSQL 17**
-- **Flyway**
-- **JPA / Hibernate**
-- índices para status e código de rastreamento
+- PostgreSQL 17
+- Flyway
+- JPA / Hibernate
 - migrations versionadas
+- constraints e índices de suporte operacional
 
-### DevOps e infraestrutura
+### Infraestrutura e CI
 
-- **Docker**
-- **Docker Compose**
-- **Nginx**
-- Dockerfile multi-stage
+- Docker
+- Docker Compose
+- Dockerfiles multi-stage
+- Nginx
 - healthcheck do PostgreSQL
-- variáveis de ambiente
-- **GitHub Actions / Platform CI**
+- GitHub Actions
+- Platform CI para backend e frontend
+- Android CI
 
 ### Mobile
 
-- **Kotlin**
-- **Jetpack Compose**
-- **Material 3**
-- **Navigation Compose**
-- **Hilt**
-- **CameraX**
-- **ML Kit Barcode Scanning**
-- **ViewModel + StateFlow**
-- **JUnit / MockK**
+- Kotlin
+- Jetpack Compose
+- Material 3
+- Navigation Compose
+- Hilt
+- CameraX
+- ML Kit Barcode Scanning
+- ViewModel + StateFlow
+- JUnit / MockK
 
 ---
 
 ## 🏗️ Arquitetura
 
 ```text
-┌──────────────────────────┐
-│      React + Vite        │
-│   Painel Operacional     │
-│     RotaCerta Live       │
-└────────────┬─────────────┘
-             │ REST / JSON
-             ▼
-┌──────────────────────────┐
-│     Spring Boot API      │
-│        Java 21           │
-├──────────────────────────┤
-│ Controller               │
-│ Service                  │
-│ Repository               │
-│ DTO / Validation         │
-│ Transaction Management   │
-└────────────┬─────────────┘
-             │ Spring Data JPA
-             ▼
-┌──────────────────────────┐
-│      PostgreSQL 17       │
-│   Flyway Migrations      │
-└──────────────────────────┘
+┌─────────────────────────────────────────┐
+│              React + Vite               │
+│ Dashboard • Clientes • Pedidos          │
+│ Entregas • Rotas • RotaCerta Live      │
+└──────────────────┬──────────────────────┘
+                   │ REST / JSON
+                   ▼
+┌─────────────────────────────────────────┐
+│          Spring Boot API / Java 21      │
+├─────────────────────────────────────────┤
+│ Controllers                             │
+│ Services / regras de negócio            │
+│ DTOs + Validation                       │
+│ Spring Data Repositories                │
+│ Transaction Management                  │
+│ Smart Dispatch / Route Engine           │
+└──────────────────┬──────────────────────┘
+                   │ JPA / Hibernate
+                   ▼
+┌─────────────────────────────────────────┐
+│              PostgreSQL 17              │
+│           Flyway Migrations             │
+└─────────────────────────────────────────┘
 
 Docker Compose orquestra frontend, backend e banco.
 ```
 
-### Fluxo logístico
-
-```text
-Pedido criado
-      ↓
-Pagamento aprovado
-      ↓
-Separação
-      ↓
-Embalagem
-      ↓
-Pronto para envio
-      ↓
-Em transporte
-      ↓
-Saiu para entrega
-      ↓
-RotaCerta Live
-      ↓
-Entregue
-```
-
 ---
 
-## 🖥️ Funcionalidades Web
-
-### Dashboard operacional
-
-- total de pedidos;
-- pedidos em separação;
-- pedidos em transporte;
-- pedidos que saíram para entrega;
-- entregas concluídas;
-- falhas de entrega;
-- últimos pedidos e seus status.
-
-### Gestão de pedidos
-
-- listagem de pedidos;
-- cliente e valor da compra;
-- código de rastreamento;
-- atualização do status logístico;
-- geração do link RotaCerta Live.
-
-### Rastreamento tradicional
-
-O cliente ou operador pode consultar uma entrega pelo código de rastreamento e visualizar a timeline completa de eventos.
-
-Código de demonstração:
+## 🔄 Fluxo de negócio
 
 ```text
-RC-2026-SP-8F29A73
+Cliente
+  ↓
+Endereço + preferência de recebimento
+  ↓
+Pedido
+  ↓
+Itens + prioridade + modalidade
+  ↓
+Preparação
+  ↓
+Pedido elegível ao despacho
+  ↓
+Smart Dispatch
+  ↓
+Motorista
+  ↓
+Rota otimizada
+  ↓
+OUT_FOR_DELIVERY
+  ↓
+RotaCerta Live
+  ↓
+Entrega concluída
 ```
-
-### RotaCerta Live
-
-O cliente recebe uma experiência dedicada para uma entrega em andamento, podendo acompanhar os eventos e registrar previamente outro recebedor.
 
 ---
 
@@ -232,17 +319,56 @@ O cliente recebe uma experiência dedicada para uma entrega em andamento, podend
 GET /api/dashboard
 ```
 
+### Clientes
+
+```http
+GET  /api/customers
+GET  /api/customers/{id}
+POST /api/customers
+PUT  /api/customers/{id}
+
+GET  /api/customers/{id}/addresses
+POST /api/customers/{id}/addresses
+
+GET  /api/customers/{id}/authorized-recipients
+POST /api/customers/{id}/authorized-recipients
+
+GET /api/customers/{id}/preferences
+PUT /api/customers/{id}/preferences
+
+GET /api/customers/{id}/orders
+```
+
 ### Pedidos
 
 ```http
-GET /api/orders
-GET /api/orders/{id}
+GET  /api/orders
+GET  /api/orders/{id}
+GET  /api/orders/{id}/detail
+POST /api/orders
 ```
 
-### Rastreamento
+Exemplo conceitual de criação:
 
-```http
-GET /api/tracking/{trackingCode}
+```json
+{
+  "customerId": 1,
+  "addressId": 1,
+  "priority": "HIGH",
+  "deliveryType": "SCHEDULED",
+  "deliveryDate": "2026-08-30",
+  "windowStart": "14:00:00",
+  "windowEnd": "18:00:00",
+  "items": [
+    {
+      "productName": "Notebook",
+      "quantity": 1,
+      "unitPrice": 4299.00,
+      "weightKg": 2.8,
+      "volumeM3": 0.015
+    }
+  ]
+}
 ```
 
 ### Entregas
@@ -253,6 +379,25 @@ POST  /api/deliveries/{id}/confirm
 POST  /api/deliveries/{id}/failure
 ```
 
+### Smart Dispatch
+
+```http
+GET   /api/dispatch/monitoring
+POST  /api/dispatch/auto-plan
+POST  /api/dispatch/orders/{orderId}/assign
+GET   /api/dispatch/orders/{orderId}
+GET   /api/dispatch/drivers/{driverId}/route
+POST  /api/dispatch/drivers/{driverId}/route/optimize
+POST  /api/dispatch/drivers/{driverId}/route/apply
+PATCH /api/dispatch/drivers/{driverId}/location
+```
+
+### Rastreamento
+
+```http
+GET /api/tracking/{trackingCode}
+```
+
 ### RotaCerta Live
 
 ```http
@@ -261,45 +406,70 @@ GET  /api/public/live/{token}
 POST /api/public/live/{token}/recipient
 ```
 
-Exemplo de autorização:
-
-```json
-{
-  "name": "Maria Souza",
-  "relationship": "Vizinho",
-  "instructions": "Pode receber a encomenda na casa ao lado."
-}
-```
-
 ---
 
 ## 🗄️ Modelo de dados
 
+Domínios principais:
+
 ```text
 Customer
-   │
-   └── 1:N ── Order
-                │
-                ├── 1:N ── TrackingEvent
-                │
-                └── 1:N ── DeliveryTrackingSession
+ ├── CustomerAddress
+ ├── AuthorizedRecipient
+ ├── DeliveryPreference
+ └── Order
+      ├── OrderItem
+      ├── OrderDeliveryDetails
+      ├── TrackingEvent
+      ├── LiveTrackingSession
+      ├── DeliveryLocation
+      └── DeliveryAssignment
+             └── Driver
 ```
 
-Principais tabelas:
+Tabelas relevantes:
 
 ```text
 customers
+customer_addresses
+authorized_recipients
+delivery_preferences
 orders
+order_items
+order_delivery_details
 tracking_events
 delivery_tracking_sessions
+delivery_locations
+delivery_assignments
+drivers
 flyway_schema_history
 ```
 
-O relacionamento `Order -> Customer` utiliza carregamento `LAZY`, com serviços de leitura executados dentro de transações `readOnly` para evitar acesso a proxies Hibernate fora da sessão.
+A criação de um pedido grava um **snapshot do endereço e da janela de entrega**, evitando que alterações futuras no cadastro do cliente mudem o histórico logístico do pedido.
 
 ---
 
-## 🐳 Executando com Docker
+## 🧬 Flyway
+
+O banco evolui por migrations versionadas.
+
+```text
+V1  create schema
+V2  seed demo data
+V3  live tracking sessions
+V4  smart dispatch
+V5  delivery operations metadata
+V6  driver vehicle metadata
+V7  route sequence
+V8  customer experience
+V9  order operations
+```
+
+A migration `V9__create_order_operations.sql` adiciona prioridade, modalidade, itens e snapshot de entrega aos pedidos, além de realizar backfill compatível para os registros anteriores.
+
+---
+
+## 🐳 Executando localmente
 
 ### Pré-requisitos
 
@@ -307,7 +477,7 @@ O relacionamento `Order -> Customer` utiliza carregamento `LAZY`, com serviços 
 - Docker Compose
 - Git
 
-Clone o repositório:
+Clone:
 
 ```bash
 git clone https://github.com/juceliocoelho2022/rotacerta.git
@@ -334,19 +504,10 @@ rotacerta-backend    running
 rotacerta-frontend   running
 ```
 
-### Endereços
-
-| Serviço | Endereço |
-|---|---|
-| Frontend React | `http://localhost:5173` |
-| Backend Spring Boot | `http://localhost:8080` |
-| Swagger | `http://localhost:8080/swagger-ui.html` |
-| Actuator Health | `http://localhost:8080/actuator/health` |
-| PostgreSQL | `localhost:5432` |
-
-Teste de saúde:
+O Spring Boot pode levar alguns segundos após o container entrar em `Up`. Aguarde a inicialização antes de testar o Actuator.
 
 ```powershell
+Start-Sleep -Seconds 15
 Invoke-RestMethod http://localhost:8080/actuator/health
 ```
 
@@ -358,22 +519,19 @@ status
 UP
 ```
 
-### Atenção à porta 5173
+### URLs locais
 
-Se existir outro processo Vite local usando `localhost:5173`, ele pode interceptar o acesso ao frontend Docker. Para identificar processos na porta:
-
-```powershell
-Get-NetTCPConnection -LocalPort 5173 -State Listen | ForEach-Object {
-    $processo = Get-CimInstance Win32_Process -Filter "ProcessId=$($_.OwningProcess)"
-    [PSCustomObject]@{
-        PID = $_.OwningProcess
-        Name = $processo.Name
-        CommandLine = $processo.CommandLine
-    }
-}
-```
-
-Encerre somente o processo Vite conflitante e mantenha o Docker Desktop ativo.
+| Serviço | Endereço |
+|---|---|
+| Dashboard | `http://localhost:5173/` |
+| Clientes | `http://localhost:5173/customers` |
+| Pedidos | `http://localhost:5173/orders` |
+| Entregas | `http://localhost:5173/deliveries` |
+| Rotas | `http://localhost:5173/routes` |
+| Backend | `http://localhost:8080` |
+| Swagger | `http://localhost:8080/swagger-ui.html` |
+| Actuator | `http://localhost:8080/actuator/health` |
+| PostgreSQL | `localhost:5432` |
 
 ---
 
@@ -412,68 +570,75 @@ rotacerta/
 
 ## ✅ Status atual
 
-### Implementado e validado
+### Implementado
 
 - [x] Frontend React + TypeScript
-- [x] Dashboard operacional
 - [x] Backend Java 21 + Spring Boot
-- [x] API REST
-- [x] Spring Data JPA
-- [x] PostgreSQL 17
-- [x] Flyway
+- [x] PostgreSQL + Flyway
 - [x] Docker Compose
 - [x] Swagger / OpenAPI
-- [x] Spring Boot Actuator
+- [x] Actuator
+- [x] Dashboard executivo
+- [x] Customer Experience
+- [x] Cadastro de clientes
+- [x] Múltiplos endereços
+- [x] Recebedores autorizados
+- [x] Preferências e janela de entrega
+- [x] Centro operacional de Pedidos
+- [x] Wizard de novo pedido
+- [x] Itens, prioridade e modalidade de entrega
+- [x] Snapshot do destino
+- [x] Gestão operacional de Entregas
+- [x] Smart Dispatch
+- [x] Route Engine com otimização de sequência
 - [x] Rastreamento por código
 - [x] Histórico de eventos
-- [x] Atualização de status
 - [x] RotaCerta Live
-- [x] Link público temporário
-- [x] Timeline pública da entrega
-- [x] Autorização de recebedor alternativo
-- [x] Persistência da autorização no PostgreSQL
-- [x] Atualização automática a cada 30 segundos
-- [x] CI para frontend e backend
+- [x] CI de frontend e backend
 - [x] Aplicativo Android em evolução
 
-### Próximas sprints
+### Em evolução
 
-- [ ] Exibir recebedor autorizado no app Android do entregador
-- [ ] PIN temporário de confirmação de entrega
-- [ ] GPS do motorista
-- [ ] ETA e quantidade de paradas restantes
-- [ ] Mapa em tempo real com privacidade controlada
+- [ ] integrar pedidos recém-criados ao Smart Dispatch de forma automática/controlada
+- [ ] utilizar janela de entrega como restrição explícita no Route Engine
+- [ ] tela operacional completa de Motoristas
+- [ ] gestão de Frota/Veículos
+- [ ] prova de entrega com recebedor, data/hora e evidência
+- [ ] GPS em tempo real do motorista
+- [ ] tráfego externo e ETA dinâmico
+- [ ] notificações reais por e-mail/SMS/WhatsApp
 - [ ] Spring Security + JWT
-- [ ] Perfis `ADMIN`, `CUSTOMER` e `DRIVER`
-- [ ] Apache Kafka para eventos logísticos
-- [ ] Notificações por canal autorizado
+- [ ] perfis `ADMIN`, `CUSTOMER` e `DRIVER`
+- [ ] Kafka para eventos logísticos
 - [ ] Redis
 - [ ] Prometheus + Grafana
 - [ ] OpenTelemetry
 - [ ] Testcontainers
-- [ ] Métricas de reentregas evitadas e economia operacional
 
 ---
 
 ## 🧠 Conceitos aplicados
 
-- Arquitetura em camadas
-- DTO Pattern
-- Repository Pattern
-- Injeção de dependência
-- API REST
-- HTTP / JSON
-- Spring Transaction Management
-- Lazy Loading com JPA/Hibernate
-- Flyway Database Migrations
-- Containerização
-- Configuração por variáveis de ambiente
-- Single Page Application
-- Token público temporário
-- Separação entre frontend e backend
-- CI com GitHub Actions
-- Conventional Commits
-- Evolução incremental por sprints
+- arquitetura em camadas;
+- modelagem orientada ao domínio;
+- DTO Pattern;
+- Repository Pattern;
+- injeção de dependência;
+- API REST;
+- validação de entrada;
+- transações Spring;
+- JPA/Hibernate;
+- Flyway Database Migrations;
+- snapshots para preservação histórica;
+- cálculo de distância geográfica com Haversine;
+- heurística de despacho;
+- otimização de sequência de paradas;
+- containerização;
+- configuração por variáveis de ambiente;
+- SPA com React;
+- CI com GitHub Actions;
+- Conventional Commits;
+- evolução incremental por branches e pull requests.
 
 ---
 
@@ -481,7 +646,7 @@ rotacerta/
 
 **Jucelio Farias Coelho**
 
-Projeto de portfólio e estudo aplicado em **Desenvolvimento Full Stack, Java Backend, Android, Banco de Dados, Docker e Engenharia de Software**.
+Projeto de portfólio e estudo aplicado em **Java Backend, Desenvolvimento Full Stack, Android, Banco de Dados, Docker, Logística e Engenharia de Software**.
 
 GitHub: [juceliocoelho2022](https://github.com/juceliocoelho2022)
 
