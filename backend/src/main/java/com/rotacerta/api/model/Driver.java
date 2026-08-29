@@ -1,6 +1,12 @@
 package com.rotacerta.api.model;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+
 import java.time.OffsetDateTime;
 
 @Entity
@@ -40,6 +46,26 @@ public class Driver {
 
     protected Driver() {}
 
+    public Driver(
+            String name,
+            double latitude,
+            double longitude,
+            boolean available,
+            int maxCapacity,
+            String vehiclePlate,
+            String vehicleModel
+    ) {
+        this.name = name;
+        this.latitude = latitude;
+        this.longitude = longitude;
+        this.available = available;
+        this.currentLoad = 0;
+        this.maxCapacity = maxCapacity;
+        this.vehiclePlate = vehiclePlate;
+        this.vehicleModel = vehicleModel;
+        this.updatedAt = OffsetDateTime.now();
+    }
+
     public Long getId() { return id; }
     public String getName() { return name; }
     public double getLatitude() { return latitude; }
@@ -64,6 +90,11 @@ public class Driver {
             throw new IllegalStateException("Motorista sem capacidade disponível.");
         }
         this.currentLoad++;
+        this.updatedAt = OffsetDateTime.now();
+    }
+
+    public void setAvailable(boolean available) {
+        this.available = available;
         this.updatedAt = OffsetDateTime.now();
     }
 
