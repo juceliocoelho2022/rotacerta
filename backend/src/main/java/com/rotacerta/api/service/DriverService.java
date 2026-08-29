@@ -7,6 +7,7 @@ import com.rotacerta.api.model.Driver;
 import com.rotacerta.api.repository.DriverRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Comparator;
 import java.util.List;
@@ -15,9 +16,14 @@ import java.util.List;
 public class DriverService {
 
     private final DriverRepository driverRepository;
+    private final DriverPhotoStorageService photoStorageService;
 
-    public DriverService(DriverRepository driverRepository) {
+    public DriverService(
+            DriverRepository driverRepository,
+            DriverPhotoStorageService photoStorageService
+    ) {
         this.driverRepository = driverRepository;
+        this.photoStorageService = photoStorageService;
     }
 
     @Transactional(readOnly = true)
@@ -68,6 +74,34 @@ public class DriverService {
         return toResponse(driverRepository.save(driver));
     }
 
+    @Transactional
+    public DriverResponse uploadPhoto(Long id, MultipartFile file) {
+        Driver driver = getDriver(id);
+        String previousPhotoUrl = driver.getPhotoUrl();
+        String newPhotoUrl = photoStorageService.store(file);
+
+        driver.setPhotoUrl(newPhotoUrl);
+        Driver saved = driverRepository.saveAndFlush(driver);
+
+        if (previousPhotoUrl != null && !previousPhotoUrl.equals(newPhotoUrl)) {
+            photoStorageService.delete(previousPhotoUrl);
+        }
+
+        return toResponse(saved);
+    }
+
+    @Transactional
+    public DriverResponse removePhoto(Long id) {
+        Driver driver = getDriver(id);
+        String previousPhotoUrl = driver.getPhotoUrl();
+
+        driver.setPhotoUrl(null);
+        Driver saved = driverRepository.saveAndFlush(driver);
+        photoStorageService.delete(previousPhotoUrl);
+
+        return toResponse(saved);
+    }
+
     private Driver getDriver(Long id) {
         if (id == null) {
             throw new IllegalArgumentException("O ID do motorista é obrigatório.");
@@ -88,6 +122,7 @@ public class DriverService {
                 driver.getMaxCapacity(),
                 driver.getVehiclePlate(),
                 driver.getVehicleModel(),
+                driver.getPhotoUrl(),
                 driver.getUpdatedAt()
         );
     }
