@@ -11,11 +11,16 @@ public record MonitoringOrderResponse(
         DeliveryStatus status,
         double latitude,
         double longitude,
+        String destinationLabel,
+        String region,
         int priority,
         int slaMinutes,
         Long driverId,
         String driverName,
         Integer etaMinutes,
         BigDecimal distanceKm,
-        BigDecimal score
+        BigDecimal score,
+        int riskPercent,
+        String riskLevel,
+        String riskReason
 ) {}
