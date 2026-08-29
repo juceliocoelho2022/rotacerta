@@ -9,6 +9,7 @@ import './styles/routes.css'
 import './styles/customers.css'
 import './styles/customer-forms.css'
 import './styles/orders.css'
+import './styles/orders-dispatch.css'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
