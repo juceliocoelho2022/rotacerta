@@ -2,7 +2,24 @@
 
 ## Objetivo
 
-O **RotaCerta Live** reduz tentativas de entrega frustradas. Quando um pedido muda para `OUT_FOR_DELIVERY`, o backend cria uma sessão pública temporária e segura. O cliente pode acompanhar a evolução da entrega e autorizar outra pessoa de confiança caso não esteja no endereço.
+O **RotaCerta Live** foi criado para reduzir tentativas de entrega frustradas e custos de reentrega.
+
+Quando um pedido muda para `OUT_FOR_DELIVERY`, o backend cria uma sessão pública temporária. O cliente recebe um link de acompanhamento, visualiza os eventos da entrega e pode autorizar antecipadamente outra pessoa de confiança caso não esteja no endereço.
+
+## Status
+
+**MVP implementado e validado localmente.**
+
+Fluxos já testados:
+
+- criação do link público para pedido em `OUT_FOR_DELIVERY`;
+- acesso à página `/live/{token}`;
+- consulta da timeline do pedido;
+- atualização automática a cada 30 segundos;
+- autorização de recebedor alternativo;
+- persistência da autorização no PostgreSQL;
+- exibição do recebedor autorizado na própria página Live;
+- execução integrada com React, Spring Boot, PostgreSQL e Docker Compose.
 
 ## Fluxo
 
@@ -21,7 +38,9 @@ Cliente pode autorizar familiar/vizinho/porteiro
         ↓
 Instrução persiste no PostgreSQL
         ↓
-Operação/Driver poderá consultar na próxima integração mobile
+Página Live exibe o recebedor autorizado
+        ↓
+Próxima integração: Android do entregador
 ```
 
 ## Segurança do link
@@ -40,9 +59,9 @@ Operação/Driver poderá consultar na próxima integração mobile
 POST /api/deliveries/{id}/live-link
 ```
 
-Disponível apenas quando o pedido está em `OUT_FOR_DELIVERY`.
+Disponível quando o pedido está em `OUT_FOR_DELIVERY`.
 
-Resposta:
+Exemplo de resposta:
 
 ```json
 {
@@ -57,19 +76,34 @@ Resposta:
 GET /api/public/live/{token}
 ```
 
+A resposta inclui:
+
+- código de rastreamento;
+- número do pedido;
+- cliente;
+- status atual;
+- validade da sessão;
+- recebedor alternativo, quando houver;
+- instruções da entrega;
+- histórico de eventos.
+
 ### Autorizar outro recebedor
 
 ```http
 POST /api/public/live/{token}/recipient
 ```
 
+Exemplo:
+
 ```json
 {
   "name": "Maria Souza",
-  "relationship": "Familiar",
-  "instructions": "Apartamento 32. Pode receber por mim."
+  "relationship": "Vizinho",
+  "instructions": "Pode receber a encomenda na casa ao lado."
 }
 ```
+
+Após a gravação, a página Live exibe o bloco **Recebedor autorizado**.
 
 ## Banco de dados
 
@@ -85,23 +119,91 @@ Tabela:
 delivery_tracking_sessions
 ```
 
-Armazena token, validade, status da sessão, pessoa autorizada e instruções de entrega.
+A sessão armazena:
+
+- token público;
+- pedido relacionado;
+- validade;
+- status ativo/inativo;
+- nome do recebedor alternativo;
+- relação com o destinatário;
+- instruções de entrega.
 
 ## Frontend
 
-A rota pública é:
+Rota pública:
 
 ```text
 /live/:token
 ```
 
-A página atualiza os eventos a cada 30 segundos e permite autorizar outra pessoa sem exigir login.
+A página possui:
+
+- cabeçalho de entrega em andamento;
+- status atual;
+- código de rastreamento;
+- atualização automática;
+- timeline dos eventos;
+- formulário de autorização;
+- confirmação visual da pessoa autorizada.
+
+## Ambiente validado
+
+```text
+Frontend:   React + TypeScript + Vite + Nginx
+Backend:    Java 21 + Spring Boot
+Banco:      PostgreSQL 17 + Flyway
+Infra:      Docker + Docker Compose
+```
+
+Containers esperados:
+
+```text
+rotacerta-postgres   healthy
+rotacerta-backend    running
+rotacerta-frontend   running
+```
+
+Healthcheck:
+
+```powershell
+Invoke-RestMethod http://localhost:8080/actuator/health
+```
+
+Resposta:
+
+```text
+status
+------
+UP
+```
+
+## Observação sobre desenvolvimento local
+
+Evite deixar uma instância antiga do Vite usando a porta `5173` ao mesmo tempo que o frontend Docker.
+
+Para identificar conflitos:
+
+```powershell
+Get-NetTCPConnection -LocalPort 5173 -State Listen | ForEach-Object {
+    $processo = Get-CimInstance Win32_Process -Filter "ProcessId=$($_.OwningProcess)"
+    [PSCustomObject]@{
+        PID = $_.OwningProcess
+        Name = $processo.Name
+        CommandLine = $processo.CommandLine
+    }
+}
+```
+
+Se houver um `node.exe` executando um Vite antigo, encerre apenas esse PID. Não encerre o processo do Docker Desktop.
 
 ## Próximas evoluções
 
-1. integrar o Android do entregador para visualizar instruções em tempo real;
-2. enviar o link automaticamente por e-mail/SMS/WhatsApp usando provedor autorizado;
+1. integrar o Android do entregador para visualizar recebedor e instruções;
+2. gerar PIN temporário de confirmação de entrega;
 3. transmitir localização do motorista com privacidade controlada;
 4. calcular ETA e quantidade de paradas restantes;
-5. confirmar recebimento por PIN/QR Code;
-6. medir reentregas evitadas, quilômetros e custo operacional economizado.
+5. adicionar mapa em tempo real;
+6. enviar o link automaticamente por canal autorizado;
+7. medir reentregas evitadas, quilômetros e custo operacional economizado;
+8. evoluir eventos logísticos para arquitetura assíncrona com Kafka.
