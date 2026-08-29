@@ -1,0 +1,46 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: rotacerta-postgres
+    environment:
+      POSTGRES_DB: rotacerta
+      POSTGRES_USER: rotacerta
+      POSTGRES_PASSWORD: rotacerta
+    ports:
+      - "5432:5432"
+    volumes:
+      - rotacerta_pgdata:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/00-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rotacerta -d rotacerta"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  backend:
+    build:
+      context: ./backend
+    container_name: rotacerta-backend
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/rotacerta
+      SPRING_DATASOURCE_USERNAME: rotacerta
+      SPRING_DATASOURCE_PASSWORD: rotacerta
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: rotacerta-frontend
+    environment:
+      VITE_API_URL: http://localhost:8080
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+
+volumes:
+  rotacerta_pgdata:
