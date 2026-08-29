@@ -4,6 +4,7 @@ import com.rotacerta.api.dto.AlternateRecipientRequest;
 import com.rotacerta.api.dto.LiveLinkResponse;
 import com.rotacerta.api.dto.LiveTrackingResponse;
 import com.rotacerta.api.dto.TrackingEventResponse;
+import com.rotacerta.api.model.DeliveryStatus;
 import com.rotacerta.api.model.DeliveryTrackingSession;
 import com.rotacerta.api.model.OrderEntity;
 import com.rotacerta.api.repository.DeliveryTrackingSessionRepository;
@@ -64,6 +65,10 @@ public class LiveTrackingService {
     public LiveLinkResponse createOrGetLink(Long orderId) {
         OrderEntity order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new IllegalArgumentException("Pedido não encontrado. ID: " + orderId));
+
+        if (order.getStatus() != DeliveryStatus.OUT_FOR_DELIVERY) {
+            throw new IllegalArgumentException("O RotaCerta Live só fica disponível quando o pedido sai para entrega.");
+        }
 
         DeliveryTrackingSession session = ensureSession(order);
         return toLinkResponse(session);
