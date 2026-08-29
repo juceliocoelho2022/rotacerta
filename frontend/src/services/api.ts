@@ -40,7 +40,7 @@ export interface OrderItemDetail {
   unitPrice: number
   weightKg: number
   volumeM3: number
-  subtotal: number
+  lineTotal: number
 }
 
 export interface OrderDeliveryDetail {
