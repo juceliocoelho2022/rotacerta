@@ -17,13 +17,29 @@ const titles: Record<CustomerFormMode, { title: string; subtitle: string }> = {
   recipient: { title: 'Novo recebedor autorizado', subtitle: 'Cadastre uma pessoa autorizada a receber entregas.' }
 }
 
+function parseCoordinate(value: string) {
+  if (!value.trim()) return null
+  const normalized = Number(value.replace(',', '.'))
+  return Number.isFinite(normalized) ? normalized : null
+}
+
 export function CustomerFormModal({ mode, customerId, onClose, onSaved }: Props) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
   const [customer, setCustomer] = useState({ name: '', email: '', phone: '' })
   const [address, setAddress] = useState({
-    label: 'Casa', street: '', number: '', complement: '', district: '', city: '', state: 'SP', zipCode: '', primaryAddress: false
+    label: 'Casa',
+    street: '',
+    number: '',
+    complement: '',
+    district: '',
+    city: '',
+    state: 'SP',
+    zipCode: '',
+    latitude: '',
+    longitude: '',
+    primaryAddress: false
   })
   const [recipient, setRecipient] = useState({ name: '', relationship: '', phone: '' })
 
@@ -49,6 +65,27 @@ export function CustomerFormModal({ mode, customerId, onClose, onSaved }: Props)
       }
 
       if (mode === 'address') {
+        const hasLatitude = Boolean(address.latitude.trim())
+        const hasLongitude = Boolean(address.longitude.trim())
+
+        if (hasLatitude !== hasLongitude) {
+          setError('Informe latitude e longitude juntas ou deixe as duas em branco.')
+          return
+        }
+
+        const latitude = parseCoordinate(address.latitude)
+        const longitude = parseCoordinate(address.longitude)
+
+        if (hasLatitude && (latitude === null || latitude < -90 || latitude > 90)) {
+          setError('Latitude inválida. Informe um valor entre -90 e 90.')
+          return
+        }
+
+        if (hasLongitude && (longitude === null || longitude < -180 || longitude > 180)) {
+          setError('Longitude inválida. Informe um valor entre -180 e 180.')
+          return
+        }
+
         await api.post(`/api/customers/${customerId}/addresses`, {
           label: address.label,
           street: address.street,
@@ -58,8 +95,8 @@ export function CustomerFormModal({ mode, customerId, onClose, onSaved }: Props)
           city: address.city,
           state: address.state.toUpperCase(),
           zipCode: address.zipCode || null,
-          latitude: null,
-          longitude: null,
+          latitude,
+          longitude,
           primaryAddress: address.primaryAddress
         })
         await onSaved(customerId)
@@ -117,6 +154,8 @@ export function CustomerFormModal({ mode, customerId, onClose, onSaved }: Props)
               <label>Bairro<input maxLength={100} value={address.district} onChange={event => setAddress(current => ({ ...current, district: event.target.value }))} placeholder="Jardins" /></label>
               <label>Cidade<input required maxLength={100} value={address.city} onChange={event => setAddress(current => ({ ...current, city: event.target.value }))} placeholder="São Paulo" /></label>
               <label>UF<input required minLength={2} maxLength={2} value={address.state} onChange={event => setAddress(current => ({ ...current, state: event.target.value.toUpperCase() }))} placeholder="SP" /></label>
+              <label>Latitude<input inputMode="decimal" value={address.latitude} onChange={event => setAddress(current => ({ ...current, latitude: event.target.value }))} placeholder="-23.550520" /></label>
+              <label>Longitude<input inputMode="decimal" value={address.longitude} onChange={event => setAddress(current => ({ ...current, longitude: event.target.value }))} placeholder="-46.633308" /></label>
               <label className="customerCheck wide"><input type="checkbox" checked={address.primaryAddress} onChange={event => setAddress(current => ({ ...current, primaryAddress: event.target.checked }))} /><span>Definir como endereço principal</span></label>
             </div>
           )}
