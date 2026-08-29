@@ -7,5 +7,7 @@ public record MonitoringDriverResponse(
         double longitude,
         boolean available,
         int currentLoad,
-        int maxCapacity
+        int maxCapacity,
+        String vehiclePlate,
+        String vehicleModel
 ) {}
