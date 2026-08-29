@@ -36,6 +36,15 @@ type MapPoint = {
   position?: number
 }
 
+type RawMapPoint = {
+  id: string
+  latitude: number
+  longitude: number
+  label: string
+  kind: 'driver' | 'stop'
+  position?: number
+}
+
 function operationalStatus(driver: MonitoringDriver, orders: MonitoringOrder[]): DriverOperationalStatus {
   const assigned = orders.filter(order => order.driverId === driver.id)
   const needsAttention = assigned.some(order => ACTIVE_STATUSES.has(order.status) && order.riskPercent >= 85)
@@ -80,8 +89,8 @@ function performanceMatches(score: number, filter: PerformanceFilter) {
 function createMapPoints(driver: MonitoringDriver | null, route: DriverRoute | null): MapPoint[] {
   if (!driver) return []
 
-  const raw = [
-    { id: `driver-${driver.id}`, latitude: driver.latitude, longitude: driver.longitude, label: driver.name, kind: 'driver' as const },
+  const raw: RawMapPoint[] = [
+    { id: `driver-${driver.id}`, latitude: driver.latitude, longitude: driver.longitude, label: driver.name, kind: 'driver' },
     ...(route?.stops ?? []).map(stop => ({
       id: `stop-${stop.orderId}`,
       latitude: stop.latitude,
