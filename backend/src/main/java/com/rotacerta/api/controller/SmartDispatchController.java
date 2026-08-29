@@ -1,6 +1,7 @@
 package com.rotacerta.api.controller;
 
 import com.rotacerta.api.dto.DispatchAssignmentResponse;
+import com.rotacerta.api.dto.DispatchReadinessResponse;
 import com.rotacerta.api.dto.DriverLocationUpdateRequest;
 import com.rotacerta.api.dto.DriverRouteResponse;
 import com.rotacerta.api.dto.OperationsMonitoringResponse;
@@ -35,6 +36,11 @@ public class SmartDispatchController {
     @PostMapping("/auto-plan")
     public List<DispatchAssignmentResponse> autoPlan() {
         return smartDispatchService.autoPlan();
+    }
+
+    @GetMapping("/orders/{orderId}/readiness")
+    public DispatchReadinessResponse readiness(@PathVariable Long orderId) {
+        return smartDispatchService.readiness(orderId);
     }
 
     @PostMapping("/orders/{orderId}/assign")
