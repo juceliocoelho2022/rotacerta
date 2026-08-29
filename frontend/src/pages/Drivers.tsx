@@ -1,13 +1,13 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { type ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Activity,
   AlertTriangle,
-  CarFront,
   CheckCircle2,
   Clock3,
   Eye,
   Gauge,
+  ImagePlus,
   MapPin,
   Navigation,
   PackageCheck,
@@ -15,6 +15,7 @@ import {
   RefreshCcw,
   Search,
   Star,
+  Trash2,
   Truck,
   UserPlus,
   UsersRound
@@ -23,9 +24,12 @@ import { DriverCreateModal } from '../components/DriverCreateModal'
 import { api, type DriverRoute, type MonitoringDriver, type MonitoringOrder, type OperationsMonitoring } from '../services/api'
 
 const ACTIVE_STATUSES = new Set(['READY_FOR_SHIPMENT', 'SHIPPED', 'IN_TRANSIT', 'OUT_FOR_DELIVERY'])
+const MAX_PHOTO_SIZE = 5 * 1024 * 1024
+const ALLOWED_PHOTO_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
 
 type DriverOperationalStatus = 'AVAILABLE' | 'ON_ROUTE' | 'ATTENTION' | 'UNAVAILABLE'
 type PerformanceFilter = 'ALL' | 'HIGH' | 'MEDIUM' | 'ATTENTION'
+type DriverApiResponse = MonitoringDriver & { updatedAt: string }
 
 type MapPoint = {
   id: string
@@ -86,6 +90,30 @@ function performanceMatches(score: number, filter: PerformanceFilter) {
   return score < 75
 }
 
+function resolvePhotoUrl(photoUrl: string | null | undefined) {
+  if (!photoUrl) return null
+  if (/^https?:\/\//i.test(photoUrl)) return photoUrl
+
+  const baseUrl = String(api.defaults.baseURL ?? '').replace(/\/$/, '')
+  const path = photoUrl.startsWith('/') ? photoUrl : `/${photoUrl}`
+  return `${baseUrl}${path}`
+}
+
+function DriverAvatar({ driver, size }: { driver: MonitoringDriver; size: 'small' | 'large' }) {
+  const [failed, setFailed] = useState(false)
+  const src = resolvePhotoUrl(driver.photoUrl)
+
+  useEffect(() => setFailed(false), [driver.photoUrl])
+
+  return (
+    <span className={size === 'large' ? 'driverAvatarLarge' : 'driverAvatarSmall'}>
+      {src && !failed
+        ? <img src={src} alt={`Foto de ${driver.name}`} onError={() => setFailed(true)} />
+        : driver.name.charAt(0).toUpperCase()}
+    </span>
+  )
+}
+
 function createMapPoints(driver: MonitoringDriver | null, route: DriverRoute | null): MapPoint[] {
   if (!driver) return []
 
@@ -122,6 +150,7 @@ function createMapPoints(driver: MonitoringDriver | null, route: DriverRoute | n
 
 export function Drivers() {
   const navigate = useNavigate()
+  const photoInputRef = useRef<HTMLInputElement>(null)
   const [monitoring, setMonitoring] = useState<OperationsMonitoring | null>(null)
   const [routes, setRoutes] = useState<DriverRoute[]>([])
   const [selectedId, setSelectedId] = useState<number | null>(null)
@@ -132,13 +161,26 @@ export function Drivers() {
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(true)
   const [savingAvailability, setSavingAvailability] = useState(false)
+  const [savingPhoto, setSavingPhoto] = useState(false)
   const [createOpen, setCreateOpen] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const response = await api.get<OperationsMonitoring>('/api/dispatch/monitoring')
-      const data = response.data
+      const [monitoringResponse, driverResponse] = await Promise.all([
+        api.get<OperationsMonitoring>('/api/dispatch/monitoring'),
+        api.get<DriverApiResponse[]>('/api/drivers')
+      ])
+
+      const photoByDriverId = new Map(driverResponse.data.map(driver => [driver.id, driver.photoUrl ?? null]))
+      const data: OperationsMonitoring = {
+        ...monitoringResponse.data,
+        drivers: monitoringResponse.data.drivers.map(driver => ({
+          ...driver,
+          photoUrl: photoByDriverId.get(driver.id) ?? null
+        }))
+      }
+
       setMonitoring(data)
       setSelectedId(current => current && data.drivers.some(driver => driver.id === current)
         ? current
@@ -190,11 +232,11 @@ export function Drivers() {
     })
   }, [monitoring, performanceFilter, search, statusFilter, vehicleFilter])
 
-  async function handleCreated(driverId: number) {
+  async function handleCreated(driverId: number, warning?: string) {
     setCreateOpen(false)
     await load()
     setSelectedId(driverId)
-    setMessage('Motorista cadastrado e disponível para a operação conforme configuração informada.')
+    setMessage(warning ?? 'Motorista cadastrado e disponível para a operação conforme configuração informada.')
   }
 
   async function toggleAvailability() {
@@ -212,6 +254,55 @@ export function Drivers() {
       setMessage('Não foi possível alterar a disponibilidade do motorista.')
     } finally {
       setSavingAvailability(false)
+    }
+  }
+
+  async function uploadSelectedDriverPhoto(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0] ?? null
+    event.target.value = ''
+    if (!selectedDriver || !file) return
+
+    if (!ALLOWED_PHOTO_TYPES.has(file.type)) {
+      setMessage('Formato inválido. Use JPG, PNG ou WebP.')
+      return
+    }
+    if (file.size > MAX_PHOTO_SIZE) {
+      setMessage('A foto deve ter no máximo 5 MB.')
+      return
+    }
+
+    setSavingPhoto(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      await api.post(`/api/drivers/${selectedDriver.id}/photo`, formData)
+      await load()
+      setSelectedId(selectedDriver.id)
+      setMessage(`Foto de ${selectedDriver.name} atualizada com sucesso.`)
+    } catch (requestError: any) {
+      const backendMessage = requestError?.response?.data?.message
+        ?? requestError?.response?.data?.detail
+        ?? requestError?.response?.data?.error
+      setMessage(typeof backendMessage === 'string' ? backendMessage : 'Não foi possível enviar a foto do motorista.')
+    } finally {
+      setSavingPhoto(false)
+    }
+  }
+
+  async function removeSelectedDriverPhoto() {
+    if (!selectedDriver?.photoUrl) return
+    if (!window.confirm(`Remover a foto de ${selectedDriver.name}?`)) return
+
+    setSavingPhoto(true)
+    try {
+      await api.delete(`/api/drivers/${selectedDriver.id}/photo`)
+      await load()
+      setSelectedId(selectedDriver.id)
+      setMessage(`Foto de ${selectedDriver.name} removida.`)
+    } catch {
+      setMessage('Não foi possível remover a foto do motorista.')
+    } finally {
+      setSavingPhoto(false)
     }
   }
 
@@ -335,7 +426,7 @@ export function Drivers() {
                     <tr key={driver.id} className={selectedId === driver.id ? 'selected' : ''} onClick={() => setSelectedId(driver.id)}>
                       <td>
                         <div className="driverCellIdentity">
-                          <span className="driverAvatarSmall">{driver.name.charAt(0).toUpperCase()}</span>
+                          <DriverAvatar driver={driver} size="small" />
                           <div><strong>{driver.name}</strong><small>ID #{String(driver.id).padStart(3, '0')}</small></div>
                         </div>
                       </td>
@@ -360,7 +451,14 @@ export function Drivers() {
           {selectedDriver ? (
             <>
               <div className="driverProfileTop">
-                <div className="driverAvatarLarge">{selectedDriver.name.charAt(0).toUpperCase()}</div>
+                <div className="driverProfilePhoto">
+                  <DriverAvatar driver={selectedDriver} size="large" />
+                  <div className="driverPhotoManage">
+                    <button type="button" disabled={savingPhoto} onClick={() => photoInputRef.current?.click()} title={selectedDriver.photoUrl ? 'Alterar foto' : 'Adicionar foto'}><ImagePlus size={12}/></button>
+                    {selectedDriver.photoUrl && <button className="remove" type="button" disabled={savingPhoto} onClick={removeSelectedDriverPhoto} title="Remover foto"><Trash2 size={12}/></button>}
+                  </div>
+                  <input ref={photoInputRef} className="driverPhotoInput" type="file" accept="image/jpeg,image/png,image/webp" onChange={uploadSelectedDriverPhoto} />
+                </div>
                 <div className="driverProfileIdentity">
                   <small>MOTORISTA · ID #{String(selectedDriver.id).padStart(3, '0')}</small>
                   <h2>{selectedDriver.name}</h2>
