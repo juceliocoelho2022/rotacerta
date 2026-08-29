@@ -29,6 +29,12 @@ public class Driver {
     @Column(name = "max_capacity", nullable = false)
     private int maxCapacity;
 
+    @Column(name = "vehicle_plate", nullable = false, length = 20)
+    private String vehiclePlate;
+
+    @Column(name = "vehicle_model", nullable = false, length = 80)
+    private String vehicleModel;
+
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
 
@@ -41,6 +47,8 @@ public class Driver {
     public boolean isAvailable() { return available; }
     public int getCurrentLoad() { return currentLoad; }
     public int getMaxCapacity() { return maxCapacity; }
+    public String getVehiclePlate() { return vehiclePlate; }
+    public String getVehicleModel() { return vehicleModel; }
     public OffsetDateTime getUpdatedAt() { return updatedAt; }
 
     public boolean hasCapacity() {
