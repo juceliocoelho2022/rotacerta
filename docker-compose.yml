@@ -25,8 +25,11 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/rotacerta
       SPRING_DATASOURCE_USERNAME: rotacerta
       SPRING_DATASOURCE_PASSWORD: rotacerta
+      DRIVER_UPLOAD_DIR: /app/uploads
     ports:
       - "8080:8080"
+    volumes:
+      - ./backend/uploads:/app/uploads
     depends_on:
       postgres:
         condition: service_healthy
