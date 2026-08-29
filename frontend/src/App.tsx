@@ -1,6 +1,8 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { Layout } from './components/Layout'
 import { Dashboard } from './pages/Dashboard'
+import { Deliveries } from './pages/Deliveries'
+import { Routes as RoutesPage } from './pages/Routes'
 import { Orders } from './pages/Orders'
 import { Tracking } from './pages/Tracking'
 import { LiveTracking } from './pages/LiveTracking'
@@ -13,10 +15,10 @@ export default function App() {
         <Route path="/live/:token" element={<LiveTracking />} />
         <Route element={<Layout />}>
           <Route path="/" element={<Dashboard />} />
+          <Route path="/deliveries" element={<Deliveries />} />
+          <Route path="/routes" element={<RoutesPage />} />
           <Route path="/orders" element={<Orders />} />
           <Route path="/tracking" element={<Tracking />} />
-          <Route path="/deliveries" element={<Placeholder title="Entregas" />} />
-          <Route path="/routes" element={<Placeholder title="Rotas" />} />
           <Route path="/drivers" element={<Placeholder title="Motoristas" />} />
           <Route path="/vehicles" element={<Placeholder title="Veículos" />} />
           <Route path="/customers" element={<Placeholder title="Clientes" />} />
