@@ -3,6 +3,7 @@ package com.rotacerta.api.controller;
 import com.rotacerta.api.dto.DispatchAssignmentResponse;
 import com.rotacerta.api.dto.DriverLocationUpdateRequest;
 import com.rotacerta.api.dto.DriverRouteResponse;
+import com.rotacerta.api.dto.OperationsMonitoringResponse;
 import com.rotacerta.api.service.SmartDispatchService;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,6 +22,11 @@ public class SmartDispatchController {
 
     public SmartDispatchController(SmartDispatchService smartDispatchService) {
         this.smartDispatchService = smartDispatchService;
+    }
+
+    @GetMapping("/monitoring")
+    public OperationsMonitoringResponse monitoring() {
+        return smartDispatchService.monitoring();
     }
 
     @PostMapping("/orders/{orderId}/assign")
