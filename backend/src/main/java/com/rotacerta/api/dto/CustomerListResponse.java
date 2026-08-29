@@ -11,6 +11,8 @@ public record CustomerListResponse(
         boolean active,
         OffsetDateTime createdAt,
         BigDecimal rating,
+        String city,
+        String state,
         long totalOrders,
         long activeDeliveries,
         long occurrences,
