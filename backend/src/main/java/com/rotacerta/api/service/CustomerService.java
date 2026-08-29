@@ -226,6 +226,11 @@ public class CustomerService {
     private CustomerListResponse toListResponse(Customer customer) {
         List<OrderEntity> orders = orderRepository.findByCustomerIdOrderByCreatedAtDesc(customer.getId());
         CustomerStats stats = stats(orders);
+        CustomerAddress primaryAddress = addressRepository
+                .findByCustomerIdOrderByPrimaryAddressDescCreatedAtAsc(customer.getId())
+                .stream()
+                .findFirst()
+                .orElse(null);
 
         return new CustomerListResponse(
                 customer.getId(),
@@ -235,6 +240,8 @@ public class CustomerService {
                 customer.isActive(),
                 customer.getCreatedAt(),
                 customer.getRating(),
+                primaryAddress == null ? null : primaryAddress.getCity(),
+                primaryAddress == null ? null : primaryAddress.getState(),
                 stats.totalOrders(),
                 stats.activeDeliveries(),
                 stats.occurrences(),
