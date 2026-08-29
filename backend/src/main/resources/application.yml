@@ -1,0 +1,29 @@
+spring:
+  application:
+    name: rotacerta-api
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/rotacerta}
+    username: ${SPRING_DATASOURCE_USERNAME:rotacerta}
+    password: ${SPRING_DATASOURCE_PASSWORD:rotacerta}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+  flyway:
+    enabled: true
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
