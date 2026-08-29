@@ -18,14 +18,56 @@ export type DeliveryStatus =
   | 'RETURNED'
   | 'CANCELLED'
 
+export type OrderPriority = 'NORMAL' | 'HIGH' | 'URGENT'
+export type DeliveryType = 'STANDARD' | 'EXPRESS' | 'SAME_DAY' | 'SCHEDULED'
+
 export interface Order {
   id: number
   orderNumber: string
   customerName: string
   total: number
   status: DeliveryStatus
+  priority: OrderPriority
+  deliveryType: DeliveryType
   trackingCode: string
   createdAt: string
+}
+
+export interface OrderItemDetail {
+  id: number
+  productName: string
+  quantity: number
+  unitPrice: number
+  weightKg: number
+  volumeM3: number
+  subtotal: number
+}
+
+export interface OrderDeliveryDetail {
+  customerAddressId: number | null
+  addressLabel: string
+  street: string
+  number: string
+  complement: string | null
+  district: string | null
+  city: string
+  state: string
+  zipCode: string | null
+  latitude: number | null
+  longitude: number | null
+  deliveryDate: string
+  windowStart: string | null
+  windowEnd: string | null
+  instructions: string | null
+}
+
+export interface OrderDetail extends Order {
+  customerId: number
+  totalWeightKg: number
+  totalVolumeM3: number
+  totalPackages: number
+  delivery: OrderDeliveryDetail | null
+  items: OrderItemDetail[]
 }
 
 export interface DashboardData {
