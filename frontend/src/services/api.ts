@@ -103,6 +103,7 @@ export interface MonitoringDriver {
   maxCapacity: number
   vehiclePlate: string
   vehicleModel: string
+  photoUrl: string | null
 }
 
 export interface MonitoringOrder {
