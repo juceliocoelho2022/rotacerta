@@ -86,8 +86,10 @@ export function Orders() {
                     <button
                       className="liveLinkButton"
                       onClick={() => openLiveTracking(order.id)}
-                      disabled={liveLoadingId === order.id || order.status === 'DELIVERED' || order.status === 'CANCELLED'}
-                      title="Abrir link público de acompanhamento"
+                      disabled={liveLoadingId === order.id || order.status !== 'OUT_FOR_DELIVERY'}
+                      title={order.status === 'OUT_FOR_DELIVERY'
+                        ? 'Abrir link público de acompanhamento'
+                        : 'Disponível quando o pedido sair para entrega'}
                     >
                       <ExternalLink size={15} />
                       {liveLoadingId === order.id ? 'Gerando...' : 'Abrir Live'}
