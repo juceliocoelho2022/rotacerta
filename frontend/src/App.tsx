@@ -4,6 +4,7 @@ import { Dashboard } from './pages/Dashboard'
 import { Deliveries } from './pages/Deliveries'
 import { Routes as RoutesPage } from './pages/Routes'
 import { Drivers } from './pages/Drivers'
+import { Drones } from './pages/Drones'
 import { Customers } from './pages/Customers'
 import { Orders } from './pages/Orders'
 import { Tracking } from './pages/Tracking'
@@ -20,6 +21,7 @@ export default function App() {
           <Route path="/deliveries" element={<Deliveries />} />
           <Route path="/routes" element={<RoutesPage />} />
           <Route path="/drivers" element={<Drivers />} />
+          <Route path="/drones" element={<Drones />} />
           <Route path="/customers" element={<Customers />} />
           <Route path="/orders" element={<Orders />} />
           <Route path="/tracking" element={<Tracking />} />
