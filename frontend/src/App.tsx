@@ -3,12 +3,14 @@ import { Layout } from './components/Layout'
 import { Dashboard } from './pages/Dashboard'
 import { Orders } from './pages/Orders'
 import { Tracking } from './pages/Tracking'
+import { LiveTracking } from './pages/LiveTracking'
 import { Placeholder } from './pages/Placeholder'
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="/live/:token" element={<LiveTracking />} />
         <Route element={<Layout />}>
           <Route path="/" element={<Dashboard />} />
           <Route path="/orders" element={<Orders />} />

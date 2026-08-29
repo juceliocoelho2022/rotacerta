@@ -1,0 +1,70 @@
+name: Platform CI
+
+on:
+  push:
+    branches: [main, "feat/**"]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: rotacerta
+          POSTGRES_USER: rotacerta
+          POSTGRES_PASSWORD: rotacerta
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U rotacerta -d rotacerta"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    env:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/rotacerta
+      SPRING_DATASOURCE_USERNAME: rotacerta
+      SPRING_DATASOURCE_PASSWORD: rotacerta
+      ROTACERTA_PUBLIC_URL: http://localhost:5173
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Test backend
+        working-directory: backend
+        run: mvn --batch-mode test
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm install
+
+      - name: Build frontend
+        working-directory: frontend
+        env:
+          VITE_API_URL: http://localhost:8080
+        run: npm run build

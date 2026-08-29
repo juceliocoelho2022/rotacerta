@@ -21,10 +21,16 @@ public class OrderService {
 
     private final OrderRepository orderRepository;
     private final TrackingEventRepository trackingEventRepository;
+    private final LiveTrackingService liveTrackingService;
 
-    public OrderService(OrderRepository orderRepository, TrackingEventRepository trackingEventRepository) {
+    public OrderService(
+            OrderRepository orderRepository,
+            TrackingEventRepository trackingEventRepository,
+            LiveTrackingService liveTrackingService
+    ) {
         this.orderRepository = orderRepository;
         this.trackingEventRepository = trackingEventRepository;
+        this.liveTrackingService = liveTrackingService;
     }
 
     @Transactional(readOnly = true)
@@ -86,6 +92,17 @@ public class OrderService {
                 OffsetDateTime.now()
         ));
 
+        if (request.status() == DeliveryStatus.OUT_FOR_DELIVERY) {
+            liveTrackingService.ensureSession(updatedOrder);
+        }
+
+        if (request.status() == DeliveryStatus.DELIVERED
+                || request.status() == DeliveryStatus.DELIVERY_FAILED
+                || request.status() == DeliveryStatus.RETURNED
+                || request.status() == DeliveryStatus.CANCELLED) {
+            liveTrackingService.deactivateForOrder(updatedOrder.getId());
+        }
+
         return toSummary(updatedOrder);
     }
 
@@ -102,6 +119,7 @@ public class OrderService {
                 OffsetDateTime.now()
         ));
 
+        liveTrackingService.deactivateForOrder(updatedOrder.getId());
         return toSummary(updatedOrder);
     }
 
@@ -118,6 +136,7 @@ public class OrderService {
                 OffsetDateTime.now()
         ));
 
+        liveTrackingService.deactivateForOrder(updatedOrder.getId());
         return toSummary(updatedOrder);
     }
 

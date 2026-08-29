@@ -1,0 +1,123 @@
+.livePage {
+  min-height: 100vh;
+  padding: 28px;
+  background:
+    radial-gradient(circle at top right, rgba(18, 120, 255, .18), transparent 32%),
+    linear-gradient(180deg, #07111f 0%, #091522 100%);
+  color: #eaf3fb;
+}
+
+.liveHero {
+  max-width: 1180px;
+  margin: 0 auto 24px;
+  border: 1px solid #1a3f5d;
+  border-radius: 22px;
+  padding: 24px;
+  background: linear-gradient(135deg, rgba(9, 32, 51, .98), rgba(7, 20, 34, .98));
+  box-shadow: 0 24px 70px rgba(0, 0, 0, .22);
+}
+
+.liveBrand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 28px;
+}
+
+.liveBrand span {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 13px;
+  background: linear-gradient(135deg, #0b7cff, #17d2ff);
+  font-weight: 900;
+}
+
+.liveBrand strong { font-size: 18px; }
+.liveHeroText h1 { margin: 10px 0 8px; font-size: clamp(30px, 5vw, 54px); }
+.liveHeroText p { margin: 0; max-width: 760px; color: #9bb0c4; font-size: 17px; line-height: 1.6; }
+.liveEyebrow { display: inline-flex; align-items: center; gap: 8px; color: #65c8ff; font-size: 12px; font-weight: 800; letter-spacing: .08em; }
+
+.liveSummaryGrid,
+.liveContentGrid {
+  max-width: 1180px;
+  margin: 0 auto;
+  display: grid;
+  gap: 16px;
+}
+
+.liveSummaryGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-bottom: 16px; }
+.liveContentGrid { grid-template-columns: 1.25fr .9fr; }
+
+.liveCard,
+.livePanel,
+.liveErrorCard {
+  border: 1px solid #1b3c57;
+  background: linear-gradient(180deg, rgba(12, 30, 46, .98), rgba(8, 22, 35, .98));
+  border-radius: 18px;
+}
+
+.liveCard { padding: 18px; display: flex; gap: 14px; align-items: center; }
+.liveCardIcon { width: 44px; height: 44px; border-radius: 13px; display: grid; place-items: center; background: #0c61d7; }
+.liveCard small { color: #728ba2; }
+.liveCard h2 { margin: 5px 0; font-size: 18px; }
+.liveCard p { margin: 0; color: #8ba1b5; font-size: 13px; }
+.liveCode { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: #8fc8ff; }
+
+.livePanel { padding: 20px; }
+.livePanelHeader { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; margin-bottom: 18px; }
+.livePanelHeader h2 { margin: 0; }
+.livePanelHeader p { margin: 5px 0 0; color: #7f97ad; }
+.livePulse { color: #56e697; border: 1px solid rgba(45, 214, 111, .4); background: rgba(45, 214, 111, .1); padding: 6px 9px; border-radius: 999px; font-size: 11px; font-weight: 800; }
+
+.liveTimeline { display: grid; gap: 3px; }
+.liveTimelineItem { display: grid; grid-template-columns: 38px 1fr; gap: 10px; position: relative; padding-bottom: 18px; }
+.liveTimelineItem:not(:last-child)::after { content: ""; position: absolute; left: 18px; top: 29px; bottom: 0; width: 2px; background: #1b527a; }
+.liveTimelineDot { width: 36px; height: 36px; border-radius: 50%; background: #0d68df; display: grid; place-items: center; z-index: 1; }
+.liveTimelineItem strong,
+.liveTimelineItem span,
+.liveTimelineItem small { display: block; }
+.liveTimelineItem span { display: flex; align-items: center; gap: 6px; margin: 5px 0; color: #91a9bd; }
+.liveTimelineItem small { color: #60798f; }
+
+.authorizedRecipient { display: flex; gap: 12px; padding: 14px; border: 1px solid #1f7650; background: rgba(34, 176, 100, .09); border-radius: 14px; margin-bottom: 16px; }
+.authorizedRecipient strong,
+.authorizedRecipient span,
+.authorizedRecipient small { display: block; }
+.authorizedRecipient span { margin-top: 4px; color: #b5c7d6; }
+.authorizedRecipient small { margin-top: 5px; color: #7e9aab; }
+
+.liveForm { display: grid; gap: 13px; }
+.liveForm label { display: grid; gap: 7px; color: #a9bdce; font-size: 13px; font-weight: 600; }
+.liveForm input,
+.liveForm select,
+.liveForm textarea {
+  width: 100%;
+  border: 1px solid #284a65;
+  background: #081826;
+  color: #e7f0f8;
+  border-radius: 11px;
+  padding: 11px 12px;
+  outline: none;
+}
+.liveForm textarea { resize: vertical; min-height: 105px; }
+.liveForm input:focus,
+.liveForm select:focus,
+.liveForm textarea:focus { border-color: #1388ff; }
+.liveForm button { border: 0; border-radius: 11px; padding: 12px 15px; background: #0d6ee8; color: white; font-weight: 800; cursor: pointer; }
+.liveForm button:disabled { opacity: .6; cursor: wait; }
+.liveMessage { color: #72dca4; background: rgba(46, 187, 111, .08); border: 1px solid rgba(46, 187, 111, .3); padding: 10px 12px; border-radius: 11px; }
+.liveSafety { display: flex; gap: 7px; color: #758da2; font-size: 12px; line-height: 1.5; margin: 15px 0 0; }
+
+.liveErrorCard { max-width: 560px; margin: 15vh auto 0; padding: 32px; text-align: center; }
+.liveErrorCard h1 { margin: 15px 0 8px; }
+.liveErrorCard p,
+.liveLoading { color: #8fa6ba; }
+.liveLoading { text-align: center; margin-top: 25vh; }
+
+@media (max-width: 900px) {
+  .liveSummaryGrid,
+  .liveContentGrid { grid-template-columns: 1fr; }
+  .livePage { padding: 16px; }
+}

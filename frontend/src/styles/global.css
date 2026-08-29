@@ -50,6 +50,9 @@ tr:hover td { background:rgba(16,46,70,.35); }
 .status-delivery_failed { color:#ff6b6b; border-color:#903737; }
 select,input { border:1px solid #24445f; background:#081827; color:#dce8f3; border-radius:10px; padding:10px 12px; outline:none; }
 select:focus,input:focus { border-color:#148bff; }
+.liveLinkButton { display:inline-flex; align-items:center; gap:7px; border:1px solid #1e6eb4; background:#0b3f6d; color:#d8efff; border-radius:10px; padding:9px 11px; cursor:pointer; white-space:nowrap; }
+.liveLinkButton:hover { background:#0d548f; }
+.liveLinkButton:disabled { opacity:.45; cursor:not-allowed; }
 .trackingGrid { display:grid; grid-template-columns:minmax(300px,.8fr) minmax(0,1.3fr); gap:16px; }
 .trackForm { display:flex; gap:10px; }
 .trackForm input { flex:1; }
