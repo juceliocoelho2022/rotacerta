@@ -140,3 +140,78 @@ export interface RouteOptimization {
   currentRoute: DriverRoute
   optimizedRoute: DriverRoute
 }
+
+export interface CustomerListItem {
+  id: number
+  name: string
+  email: string
+  phone: string | null
+  active: boolean
+  createdAt: string
+  rating: number
+  city: string | null
+  state: string | null
+  totalOrders: number
+  activeDeliveries: number
+  occurrences: number
+  lastOrderAt: string | null
+  totalSpent: number
+}
+
+export interface CustomerAddress {
+  id: number
+  label: string
+  street: string
+  number: string
+  complement: string | null
+  district: string | null
+  city: string
+  state: string
+  zipCode: string | null
+  latitude: number | null
+  longitude: number | null
+  primaryAddress: boolean
+}
+
+export interface AuthorizedRecipient {
+  id: number
+  name: string
+  relationship: string
+  phone: string | null
+  active: boolean
+}
+
+export interface DeliveryPreference {
+  notificationsEnabled: boolean
+  notificationChannel: string
+  preferredStartTime: string | null
+  preferredEndTime: string | null
+  deliveryInstructions: string | null
+}
+
+export interface CustomerOrder {
+  id: number
+  orderNumber: string
+  status: DeliveryStatus
+  trackingCode: string
+  total: number
+  createdAt: string
+}
+
+export interface CustomerDetail {
+  id: number
+  name: string
+  email: string
+  phone: string | null
+  active: boolean
+  createdAt: string
+  rating: number
+  totalOrders: number
+  activeDeliveries: number
+  occurrences: number
+  totalSpent: number
+  addresses: CustomerAddress[]
+  authorizedRecipients: AuthorizedRecipient[]
+  preference: DeliveryPreference
+  orders: CustomerOrder[]
+}
