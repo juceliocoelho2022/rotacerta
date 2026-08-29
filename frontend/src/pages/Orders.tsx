@@ -39,7 +39,8 @@ const deliveryTypeLabel: Record<DeliveryType, string> = {
 }
 
 function formatMoney(value: number) {
-  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
+  const normalized = Number(value)
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number.isFinite(normalized) ? normalized : 0)
 }
 
 function formatDateTime(value: string) {
@@ -211,7 +212,7 @@ export function Orders() {
 
                   <section className="orderItemsPanel">
                     <div className="orderSectionTitle"><strong>Itens</strong><span>{detail.totalPackages} volume(s)</span></div>
-                    {detail.items.length ? detail.items.map(item => <div className="orderDetailItem" key={item.id}><div><strong>{item.productName}</strong><span>{item.quantity} × {formatMoney(item.unitPrice)}</span></div><b>{formatMoney(item.subtotal)}</b></div>) : <div className="orderEmptySmall">Pedido legado sem itens detalhados.</div>}
+                    {detail.items.length ? detail.items.map(item => <div className="orderDetailItem" key={item.id}><div><strong>{item.productName}</strong><span>{item.quantity} × {formatMoney(item.unitPrice)}</span></div><b>{formatMoney(item.lineTotal)}</b></div>) : <div className="orderEmptySmall">Pedido legado sem itens detalhados.</div>}
                     <div className="orderLogisticsStats"><span><small>Peso</small><strong>{Number(detail.totalWeightKg).toFixed(3)} kg</strong></span><span><small>Volume</small><strong>{Number(detail.totalVolumeM3).toFixed(4)} m³</strong></span><span><small>Total</small><strong>{formatMoney(detail.total)}</strong></span></div>
                   </section>
 
