@@ -1,11 +1,14 @@
-import { type FormEvent, useState } from 'react'
-import { MapPin, Truck, UserPlus, X } from 'lucide-react'
+import { type ChangeEvent, type FormEvent, useEffect, useState } from 'react'
+import { ImagePlus, MapPin, Truck, UserPlus, X } from 'lucide-react'
 import { api, type MonitoringDriver } from '../services/api'
 
 type Props = {
   onClose: () => void
-  onSaved: (driverId: number) => Promise<void>
+  onSaved: (driverId: number, warning?: string) => Promise<void>
 }
+
+const MAX_PHOTO_SIZE = 5 * 1024 * 1024
+const ALLOWED_PHOTO_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
 
 function parseCoordinate(value: string) {
   const normalized = Number(value.replace(',', '.'))
@@ -15,6 +18,8 @@ function parseCoordinate(value: string) {
 export function DriverCreateModal({ onClose, onSaved }: Props) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [photoFile, setPhotoFile] = useState<File | null>(null)
+  const [photoPreview, setPhotoPreview] = useState('')
   const [form, setForm] = useState({
     name: '',
     latitude: '',
@@ -24,6 +29,32 @@ export function DriverCreateModal({ onClose, onSaved }: Props) {
     vehicleModel: '',
     available: true
   })
+
+  useEffect(() => {
+    return () => {
+      if (photoPreview) URL.revokeObjectURL(photoPreview)
+    }
+  }, [photoPreview])
+
+  function selectPhoto(event: ChangeEvent<HTMLInputElement>) {
+    setError('')
+    const file = event.target.files?.[0] ?? null
+    event.target.value = ''
+
+    if (!file) return
+    if (!ALLOWED_PHOTO_TYPES.has(file.type)) {
+      setError('A foto deve estar em JPG, PNG ou WebP.')
+      return
+    }
+    if (file.size > MAX_PHOTO_SIZE) {
+      setError('A foto deve ter no máximo 5 MB.')
+      return
+    }
+
+    if (photoPreview) URL.revokeObjectURL(photoPreview)
+    setPhotoFile(file)
+    setPhotoPreview(URL.createObjectURL(file))
+  }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -59,7 +90,19 @@ export function DriverCreateModal({ onClose, onSaved }: Props) {
         vehiclePlate: form.vehiclePlate.trim().toUpperCase(),
         vehicleModel: form.vehicleModel.trim()
       })
-      await onSaved(response.data.id)
+
+      let warning: string | undefined
+      if (photoFile) {
+        const photoData = new FormData()
+        photoData.append('file', photoFile)
+        try {
+          await api.post(`/api/drivers/${response.data.id}/photo`, photoData)
+        } catch {
+          warning = 'Motorista cadastrado, mas a foto não pôde ser enviada. Você pode adicioná-la pela ficha do motorista.'
+        }
+      }
+
+      await onSaved(response.data.id, warning)
     } catch (requestError: any) {
       const backendMessage = requestError?.response?.data?.message
         ?? requestError?.response?.data?.detail
@@ -89,6 +132,18 @@ export function DriverCreateModal({ onClose, onSaved }: Props) {
             <div className="driverFormSectionTitle"><UserPlus size={16}/><strong>Motorista</strong></div>
             <div className="driverFormGrid">
               <label className="wide">Nome completo<input required maxLength={120} value={form.name} onChange={event => setForm(current => ({ ...current, name: event.target.value }))} placeholder="Ex.: Ricardo Alves" /></label>
+            </div>
+
+            <div className="driverPhotoField">
+              <div className={`driverPhotoPreview ${photoPreview ? 'hasPhoto' : ''}`}>
+                {photoPreview ? <img src={photoPreview} alt="Prévia da foto do motorista" /> : <UserPlus size={26} />}
+              </div>
+              <div>
+                <strong>Foto do motorista</strong>
+                <span>JPG, PNG ou WebP · máximo 5 MB</span>
+                <label className="driverPhotoSelect"><ImagePlus size={15}/> Selecionar foto<input type="file" accept="image/jpeg,image/png,image/webp" onChange={selectPhoto} /></label>
+                {photoFile && <button className="driverPhotoRemoveSelection" type="button" onClick={() => { if (photoPreview) URL.revokeObjectURL(photoPreview); setPhotoPreview(''); setPhotoFile(null) }}>Remover seleção</button>}
+              </div>
             </div>
 
             <div className="driverFormSectionTitle"><Truck size={16}/><strong>Veículo atual</strong></div>
