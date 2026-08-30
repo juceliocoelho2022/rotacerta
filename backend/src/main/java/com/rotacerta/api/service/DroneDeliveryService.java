@@ -194,6 +194,12 @@ public class DroneDeliveryService {
                     "Autorização simulada bloqueada: peso, bateria e rota precisam estar válidos no momento da decisão."
             );
         }
+        if (request.decision() == DroneAuthorizationDecision.APPROVED_SIMULATION
+                && (request.evidence() == null || request.evidence().isEmpty())) {
+            throw new IllegalArgumentException(
+                    "Registre ao menos uma evidência para aprovar a simulação de forma auditável."
+            );
+        }
 
         OffsetDateTime now = OffsetDateTime.now();
         OffsetDateTime validUntil = now.plusMinutes(request.validMinutes());
