@@ -1,8 +1,59 @@
 import axios from 'axios'
+import { accessToken, clearSession, readSession, saveSession, type AuthSession } from '../auth/session'
 
-export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL ?? 'http://localhost:8080'
+const baseURL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080'
+
+export const api = axios.create({ baseURL })
+const refreshClient = axios.create({ baseURL })
+let refreshPromise: Promise<AuthSession> | null = null
+
+api.interceptors.request.use(config => {
+  const token = accessToken()
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
 })
+
+api.interceptors.response.use(
+  response => response,
+  async error => {
+    const original = error.config as any
+    const isAuthRequest = typeof original?.url === 'string' && original.url.includes('/api/auth/')
+
+    if (error.response?.status !== 401 || original?._retry || isAuthRequest) {
+      return Promise.reject(error)
+    }
+
+    const current = readSession()
+    if (!current?.refreshToken) {
+      clearSession()
+      if (window.location.pathname !== '/login') window.location.assign('/login')
+      return Promise.reject(error)
+    }
+
+    original._retry = true
+
+    try {
+      if (!refreshPromise) {
+        refreshPromise = refreshClient
+          .post<AuthSession>('/api/auth/refresh', { refreshToken: current.refreshToken })
+          .then(response => response.data)
+          .finally(() => { refreshPromise = null })
+      }
+
+      const refreshed = await refreshPromise
+      saveSession(refreshed)
+      original.headers = original.headers ?? {}
+      original.headers.Authorization = `Bearer ${refreshed.accessToken}`
+      return api(original)
+    } catch (refreshError) {
+      clearSession()
+      if (window.location.pathname !== '/login') window.location.assign('/login')
+      return Promise.reject(refreshError)
+    }
+  }
+)
 
 export type DeliveryStatus =
   | 'ORDER_CREATED'

@@ -7,6 +7,7 @@ import {
   ChevronDown,
   CircleAlert,
   LayoutDashboard,
+  LogOut,
   PackageCheck,
   PackageSearch,
   Plane,
@@ -16,6 +17,7 @@ import {
   UserRound,
   UsersRound
 } from 'lucide-react'
+import { useAuth } from '../auth/AuthContext'
 
 const menu = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -33,6 +35,9 @@ const menu = [
 ]
 
 export function Layout() {
+  const { user, logout } = useAuth()
+  const initials = user?.displayName?.split(' ').filter(Boolean).slice(0, 2).map(part => part[0]).join('').toUpperCase() || 'RC'
+
   return (
     <div className="shell adminShell">
       <aside className="sidebar adminSidebar">
@@ -66,17 +71,18 @@ export function Layout() {
         <header className="topbar adminTopbar">
           <div className="topbarContext">
             <span>Central de Operações</span>
-            <small>Last-mile intelligence</small>
+            <small>Last-mile intelligence · sessão protegida</small>
           </div>
           <div className="topbarActions">
             <button aria-label="Pesquisar"><Search size={19} /></button>
             <button aria-label="Notificações" className="notificationButton"><Bell size={19} /><i>3</i></button>
             <button aria-label="Configurações"><Settings size={19} /></button>
-            <div className="adminProfile">
-              <div className="adminAvatar">A</div>
-              <div><strong>Administrador</strong><small>admin@rotacerta.local</small></div>
-              <ChevronDown size={15} />
+            <div className="adminProfile authAdminProfile">
+              <div className="adminAvatar">{initials}</div>
+              <div><strong>{user?.displayName ?? 'Administrador'}</strong><small>{user?.email}</small></div>
+              <span className="rolePill">{user?.role}</span>
             </div>
+            <button className="logoutButton" aria-label="Sair" title="Encerrar sessão" onClick={() => void logout()}><LogOut size={18}/></button>
           </div>
         </header>
         <Outlet />
