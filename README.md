@@ -306,27 +306,29 @@ React Flight Control Center
 
 Não há GPS real, telemetria física nem integração com provedor de mapa externo nesta implementação.
 
-### 🎬 Demonstração operacional gravada
+### 🎬 Demonstração dinâmica validada
 
-Uma demonstração em vídeo do módulo foi validada cobrindo o início do fluxo operacional:
+Foi validada uma gravação de aproximadamente **2min53s** da Central de Voo com a missão em `IN_FLIGHT`.
+
+Durante a gravação é possível observar o comportamento dinâmico da simulação:
 
 ```text
-Pedido elegível
+Missão IN_FLIGHT
    ↓
-Análise de peso + coordenadas + distância + ETA
+Posição interpolada recalculada
    ↓
-DR-001 recomendado
+Marcador do DR-001 avança na rota
    ↓
-Criação da missão simulada
+Progresso da missão aumenta
    ↓
-Drone reservado (`RESERVED`)
+Distância restante diminui
    ↓
-Missão `PLANNED`
-   ↓
-Authorization Audit Trail
+ETA restante é recalculado
 ```
 
-A gravação comprova a integração entre pedido, motor de elegibilidade, seleção de drone, reserva operacional e governança da autorização. A **Flight Control Center** complementa essa demonstração com o acompanhamento visual da rota e da posição simulada durante `IN_FLIGHT`.
+A demonstração também mantém visíveis o modo `SIMULATION_ONLY`, a origem, o destino, a identificação da missão, o drone utilizado e os indicadores operacionais. O vídeo comprova que a Central de Voo não é apenas uma representação estática: o frontend consulta periodicamente o backend e apresenta a evolução da posição simulada ao longo do trecho.
+
+Essa validação permanece estritamente simulada. Não há GPS real, telemetria física, controle de hardware ou autorização regulatória real.
 
 ---
 
@@ -669,6 +671,7 @@ UP
 - [x] sincronização missão `DELIVERED` → pedido `DELIVERED`
 - [x] Mission Timeline com 10 eventos em missão nova
 - [x] Flight Control Center com posição interpolada
+- [x] movimentação dinâmica da Central de Voo validada em vídeo
 - [x] CI de frontend e backend
 - [x] aplicativo Android em evolução
 
