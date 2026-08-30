@@ -27,6 +27,7 @@ import {
   type DroneMission,
   type DroneMissionStatus
 } from '../services/api'
+import { DroneMissionTimeline } from '../components/DroneMissionTimeline'
 
 const FLOW: DroneMissionStatus[] = [
   'PLANNED',
@@ -388,6 +389,8 @@ export function Drones() {
                 <div><PackageCheck/><small>Carga</small><strong>{selectedMission.payloadKg.toFixed(3)} kg</strong></div>
               </div>
               <div className="droneMissionCoordinates"><span><small>Origem</small><b>{selectedMission.originLatitude.toFixed(5)}, {selectedMission.originLongitude.toFixed(5)}</b></span><span><small>Destino</small><b>{selectedMission.destinationLatitude.toFixed(5)}, {selectedMission.destinationLongitude.toFixed(5)}</b></span></div>
+
+              <DroneMissionTimeline missionId={selectedMission.id} refreshKey={selectedMission.updatedAt} />
 
               <section className="droneAuthorizationPanel">
                 <div className="droneAuthorizationTitle">
