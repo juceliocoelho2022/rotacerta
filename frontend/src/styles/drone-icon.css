@@ -1,0 +1,70 @@
+:root{
+  --rotacerta-drone-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='8' y='9' width='8' height='6' rx='2'/%3E%3Cpath d='M8 10 5.5 7.5M16 10l2.5-2.5M8 14l-2.5 2.5M16 14l2.5 2.5M10 15v2M14 15v2'/%3E%3Ccircle cx='4' cy='6' r='2'/%3E%3Ccircle cx='20' cy='6' r='2'/%3E%3Ccircle cx='4' cy='18' r='2'/%3E%3Ccircle cx='20' cy='18' r='2'/%3E%3Cpath d='M2 6h4M18 6h4M2 18h4M18 18h4'/%3E%3C/g%3E%3C/svg%3E")
+}
+
+/* Menu lateral: o item Drones usa um quadricoptero, nao um aviao. */
+.adminNav a[href="/drones"]>svg{display:none}
+.adminNav a[href="/drones"]::before{
+  content:"";
+  width:18px;
+  height:18px;
+  flex:0 0 18px;
+  background-color:currentColor;
+  -webkit-mask-image:var(--rotacerta-drone-mask);
+  mask-image:var(--rotacerta-drone-mask);
+  -webkit-mask-repeat:no-repeat;
+  mask-repeat:no-repeat;
+  -webkit-mask-position:center;
+  mask-position:center;
+  -webkit-mask-size:contain;
+  mask-size:contain
+}
+
+/* Pagina Drone Delivery: substitui todos os glifos de aviao usados como identidade do drone. */
+.droneMetrics article:first-child>svg,
+.droneCreateMission>svg,
+.droneIcon>svg,
+.droneMissionHero>svg{display:none}
+
+.droneMetrics article:first-child::before,
+.droneCreateMission::before,
+.droneIcon::before,
+.droneMissionHero::before{
+  content:"";
+  display:block;
+  background-color:currentColor;
+  -webkit-mask-image:var(--rotacerta-drone-mask);
+  mask-image:var(--rotacerta-drone-mask);
+  -webkit-mask-repeat:no-repeat;
+  mask-repeat:no-repeat;
+  -webkit-mask-position:center;
+  mask-position:center;
+  -webkit-mask-size:contain;
+  mask-size:contain
+}
+
+.droneMetrics article:first-child::before{
+  width:30px;
+  height:30px;
+  flex:0 0 30px;
+  color:#61b6ff
+}
+
+.droneCreateMission::before{
+  width:16px;
+  height:16px;
+  flex:0 0 16px
+}
+
+.droneIcon::before{
+  width:20px;
+  height:20px;
+  color:#68baff
+}
+
+.droneMissionHero::before{
+  width:24px;
+  height:24px;
+  flex:0 0 24px;
+  color:#66b7ff
+}
