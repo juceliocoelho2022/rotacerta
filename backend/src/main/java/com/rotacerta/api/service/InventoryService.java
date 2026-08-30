@@ -12,6 +12,7 @@ import com.rotacerta.api.model.InventoryMovementType;
 import com.rotacerta.api.model.InventoryReservation;
 import com.rotacerta.api.model.InventoryReservationStatus;
 import com.rotacerta.api.model.OrderEntity;
+import com.rotacerta.api.model.OrderItem;
 import com.rotacerta.api.model.Product;
 import com.rotacerta.api.repository.InventoryMovementRepository;
 import com.rotacerta.api.repository.InventoryRepository;
@@ -23,6 +24,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.TreeMap;
 
 @Service
 public class InventoryService {
@@ -110,33 +113,7 @@ public class InventoryService {
     @Transactional
     public ReservationResponse reserve(Long orderId, InventoryReservationRequest request) {
         OrderEntity order = getOrder(orderId);
-        Inventory inventory = getInventoryForUpdate(request.sku());
-        Product product = inventory.getProduct();
-
-        InventoryReservation existing = reservationRepository
-                .findByOrderIdAndProductId(orderId, product.getId())
-                .orElse(null);
-        if (existing != null && existing.getStatus() == InventoryReservationStatus.RESERVED) {
-            throw new IllegalArgumentException("O pedido já possui reserva ativa para o SKU " + product.getSku());
-        }
-        if (existing != null && existing.getStatus() == InventoryReservationStatus.CONFIRMED) {
-            throw new IllegalArgumentException("O picking deste SKU já foi confirmado para o pedido.");
-        }
-        if (existing != null) {
-            throw new IllegalArgumentException("Já existe histórico de reserva para este pedido e SKU. Use outro pedido para a nova operação.");
-        }
-
-        int previousTotal = inventory.getTotalQuantity();
-        int previousReserved = inventory.getReservedQuantity();
-        inventory.reserve(request.quantity());
-        inventoryRepository.save(inventory);
-
-        InventoryReservation reservation = reservationRepository.save(
-                new InventoryReservation(order, product, request.quantity())
-        );
-        saveMovement(inventory, order, InventoryMovementType.RESERVATION, request.quantity(),
-                previousTotal, previousReserved, "Reserva de estoque para pedido " + order.getOrderNumber());
-        return toReservationResponse(reservation);
+        return reserveInternal(order, request.sku(), request.quantity());
     }
 
     @Transactional
@@ -144,18 +121,7 @@ public class InventoryService {
         OrderEntity order = getOrder(orderId);
         Inventory inventory = getInventoryForUpdate(sku);
         InventoryReservation reservation = getReservation(orderId, inventory.getProduct().getId());
-        if (reservation.getStatus() != InventoryReservationStatus.RESERVED) {
-            throw new IllegalArgumentException("A reserva não está ativa e não pode ser liberada.");
-        }
-
-        int previousTotal = inventory.getTotalQuantity();
-        int previousReserved = inventory.getReservedQuantity();
-        inventory.release(reservation.getQuantity());
-        reservation.release();
-        inventoryRepository.save(inventory);
-        reservationRepository.save(reservation);
-        saveMovement(inventory, order, InventoryMovementType.RESERVATION_RELEASE, reservation.getQuantity(),
-                previousTotal, previousReserved, "Liberação de reserva do pedido " + order.getOrderNumber());
+        releaseReservation(order, inventory, reservation);
         return toReservationResponse(reservation);
     }
 
@@ -164,19 +130,63 @@ public class InventoryService {
         OrderEntity order = getOrder(orderId);
         Inventory inventory = getInventoryForUpdate(sku);
         InventoryReservation reservation = getReservation(orderId, inventory.getProduct().getId());
-        if (reservation.getStatus() != InventoryReservationStatus.RESERVED) {
-            throw new IllegalArgumentException("A reserva não está ativa e não pode ser processada no picking.");
-        }
-
-        int previousTotal = inventory.getTotalQuantity();
-        int previousReserved = inventory.getReservedQuantity();
-        inventory.pick(reservation.getQuantity());
-        reservation.confirm();
-        inventoryRepository.save(inventory);
-        reservationRepository.save(reservation);
-        saveMovement(inventory, order, InventoryMovementType.PICKING, reservation.getQuantity(),
-                previousTotal, previousReserved, "Picking confirmado para pedido " + order.getOrderNumber());
+        pickReservation(order, inventory, reservation, reservation.getQuantity());
         return toReservationResponse(reservation);
+    }
+
+    @Transactional
+    public void reserveOrderItems(OrderEntity order, List<OrderItem> items) {
+        for (Map.Entry<String, Integer> entry : aggregateSkuQuantities(items).entrySet()) {
+            Inventory inventory = getInventoryForUpdate(entry.getKey());
+            Product product = inventory.getProduct();
+            InventoryReservation existing = reservationRepository
+                    .findByOrderIdAndProductId(order.getId(), product.getId())
+                    .orElse(null);
+
+            if (existing == null) {
+                reserveInternal(order, product.getSku(), entry.getValue());
+                continue;
+            }
+
+            if (existing.getStatus() == InventoryReservationStatus.RESERVED
+                    && existing.getQuantity() == entry.getValue()) {
+                continue;
+            }
+
+            if (existing.getStatus() == InventoryReservationStatus.CONFIRMED) {
+                throw new IllegalArgumentException("O picking do SKU " + product.getSku() + " já foi confirmado para o pedido.");
+            }
+
+            throw new IllegalArgumentException(
+                    "A reserva do SKU " + product.getSku() + " não pode ser recriada após " + existing.getStatus() + "."
+            );
+        }
+    }
+
+    @Transactional
+    public void pickOrderItems(OrderEntity order, List<OrderItem> items) {
+        for (Map.Entry<String, Integer> entry : aggregateSkuQuantities(items).entrySet()) {
+            Inventory inventory = getInventoryForUpdate(entry.getKey());
+            InventoryReservation reservation = getReservation(order.getId(), inventory.getProduct().getId());
+
+            if (reservation.getStatus() == InventoryReservationStatus.CONFIRMED
+                    && reservation.getQuantity() == entry.getValue()) {
+                continue;
+            }
+
+            pickReservation(order, inventory, reservation, entry.getValue());
+        }
+    }
+
+    @Transactional
+    public void releaseOrderReservations(OrderEntity order) {
+        for (InventoryReservation reservation : reservationRepository.findByOrderIdOrderByCreatedAtAsc(order.getId())) {
+            if (reservation.getStatus() != InventoryReservationStatus.RESERVED) {
+                continue;
+            }
+            Inventory inventory = getInventoryForUpdate(reservation.getProduct().getSku());
+            releaseReservation(order, inventory, reservation);
+        }
     }
 
     @Transactional(readOnly = true)
@@ -192,6 +202,86 @@ public class InventoryService {
         return movementRepository.findTop100ByOrderByCreatedAtDesc().stream()
                 .map(this::toMovementResponse)
                 .toList();
+    }
+
+    private ReservationResponse reserveInternal(OrderEntity order, String sku, int quantity) {
+        Inventory inventory = getInventoryForUpdate(sku);
+        Product product = inventory.getProduct();
+
+        InventoryReservation existing = reservationRepository
+                .findByOrderIdAndProductId(order.getId(), product.getId())
+                .orElse(null);
+        if (existing != null && existing.getStatus() == InventoryReservationStatus.RESERVED) {
+            throw new IllegalArgumentException("O pedido já possui reserva ativa para o SKU " + product.getSku());
+        }
+        if (existing != null && existing.getStatus() == InventoryReservationStatus.CONFIRMED) {
+            throw new IllegalArgumentException("O picking deste SKU já foi confirmado para o pedido.");
+        }
+        if (existing != null) {
+            throw new IllegalArgumentException("Já existe histórico de reserva para este pedido e SKU. Use outro pedido para a nova operação.");
+        }
+
+        int previousTotal = inventory.getTotalQuantity();
+        int previousReserved = inventory.getReservedQuantity();
+        inventory.reserve(quantity);
+        inventoryRepository.save(inventory);
+
+        InventoryReservation reservation = reservationRepository.save(
+                new InventoryReservation(order, product, quantity)
+        );
+        saveMovement(inventory, order, InventoryMovementType.RESERVATION, quantity,
+                previousTotal, previousReserved, "Reserva de estoque para pedido " + order.getOrderNumber());
+        return toReservationResponse(reservation);
+    }
+
+    private void releaseReservation(OrderEntity order, Inventory inventory, InventoryReservation reservation) {
+        if (reservation.getStatus() != InventoryReservationStatus.RESERVED) {
+            throw new IllegalArgumentException("A reserva não está ativa e não pode ser liberada.");
+        }
+
+        int previousTotal = inventory.getTotalQuantity();
+        int previousReserved = inventory.getReservedQuantity();
+        inventory.release(reservation.getQuantity());
+        reservation.release();
+        inventoryRepository.save(inventory);
+        reservationRepository.save(reservation);
+        saveMovement(inventory, order, InventoryMovementType.RESERVATION_RELEASE, reservation.getQuantity(),
+                previousTotal, previousReserved, "Liberação de reserva do pedido " + order.getOrderNumber());
+    }
+
+    private void pickReservation(OrderEntity order, Inventory inventory, InventoryReservation reservation, int expectedQuantity) {
+        if (reservation.getStatus() != InventoryReservationStatus.RESERVED) {
+            throw new IllegalArgumentException("A reserva não está ativa e não pode ser processada no picking.");
+        }
+        if (reservation.getQuantity() != expectedQuantity) {
+            throw new IllegalArgumentException(
+                    "A quantidade reservada para o SKU " + inventory.getProduct().getSku()
+                            + " diverge da quantidade atual do pedido."
+            );
+        }
+
+        int previousTotal = inventory.getTotalQuantity();
+        int previousReserved = inventory.getReservedQuantity();
+        inventory.pick(reservation.getQuantity());
+        reservation.confirm();
+        inventoryRepository.save(inventory);
+        reservationRepository.save(reservation);
+        saveMovement(inventory, order, InventoryMovementType.PICKING, reservation.getQuantity(),
+                previousTotal, previousReserved, "Picking confirmado para pedido " + order.getOrderNumber());
+    }
+
+    private Map<String, Integer> aggregateSkuQuantities(List<OrderItem> items) {
+        Map<String, Integer> quantities = new TreeMap<>();
+        if (items == null) {
+            return quantities;
+        }
+        for (OrderItem item : items) {
+            if (item.getSku() == null || item.getSku().isBlank()) {
+                continue;
+            }
+            quantities.merge(normalizeSku(item.getSku()), item.getQuantity(), Integer::sum);
+        }
+        return quantities;
     }
 
     private void saveMovement(Inventory inventory, OrderEntity order, InventoryMovementType type, int quantity,
