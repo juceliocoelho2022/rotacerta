@@ -2,6 +2,7 @@ import { NavLink, Outlet } from 'react-router-dom'
 import {
   BarChart3,
   Bell,
+  Boxes,
   CarFront,
   ChevronDown,
   CircleAlert,
@@ -25,6 +26,7 @@ const menu = [
   { to: '/vehicles', label: 'Veículos', icon: CarFront },
   { to: '/customers', label: 'Clientes', icon: UserRound },
   { to: '/orders', label: 'Pedidos', icon: PackageSearch },
+  { to: '/stock', label: 'Estoque', icon: Boxes },
   { to: '/incidents', label: 'Ocorrências', icon: CircleAlert },
   { to: '/reports', label: 'Relatórios', icon: BarChart3 },
   { to: '/settings', label: 'Configurações', icon: Settings }
