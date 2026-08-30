@@ -1,14 +1,12 @@
 <div align="center">
-<img src="docs/assets/rotacerta-banner-top.jpg" alt="RotaCerta Smart Logistics Platform" width="100%"><img src="docs/assets/rotacerta-banner-bottom.jpg" alt="RotaCerta Smart Logistics Platform" width="100%">
-</div>
 
-<div align="center">
+<img src="docs/assets/rotacerta-banner.png" alt="RotaCerta Smart Logistics Platform" width="100%" />
 
 # 🚚 RotaCerta
 
 ### Smart Logistics, Delivery Operations & Drone Simulation Platform
 
-**Uma plataforma Full Stack para gestão de pedidos, clientes, entregas, motoristas, veículos, rotas, ocorrências, relatórios, configurações e simulação operacional de entregas por drone.**
+**Plataforma Full Stack para gestão de pedidos, clientes, entregas, motoristas, veículos, rotas, ocorrências, relatórios, configurações, rastreamento e simulação operacional de entregas por drone.**
 
 [![Platform CI](https://github.com/juceliocoelho2022/rotacerta/actions/workflows/platform-ci.yml/badge.svg)](https://github.com/juceliocoelho2022/rotacerta/actions/workflows/platform-ci.yml)
 [![Android CI](https://github.com/juceliocoelho2022/rotacerta/actions/workflows/android-ci.yml/badge.svg)](https://github.com/juceliocoelho2022/rotacerta/actions/workflows/android-ci.yml)
@@ -29,22 +27,9 @@
 
 ## 📌 Sobre o projeto
 
-O **RotaCerta** é uma plataforma de logística construída como projeto de engenharia de software e portfólio técnico. A aplicação modela o ciclo de uma operação de entrega, da criação do pedido até a entrega ao cliente, combinando operação terrestre, rastreamento e um módulo de drone estritamente em modo de simulação.
+O **RotaCerta** é um projeto de engenharia de software aplicado ao domínio de logística e entregas. A plataforma modela o ciclo operacional desde a criação do pedido até a entrega ao cliente, combinando backend Java, frontend React, banco relacional, execução via Docker e um aplicativo Android em evolução.
 
-O projeto foi estruturado para demonstrar aplicação prática de:
-
-- arquitetura em camadas;
-- modelagem de domínio;
-- APIs REST;
-- persistência relacional;
-- regras de negócio;
-- despacho inteligente;
-- roteirização;
-- rastreabilidade;
-- audit trail;
-- indicadores operacionais;
-- CI com GitHub Actions;
-- containerização com Docker.
+O objetivo é demonstrar, em um único produto de portfólio, competências em **arquitetura de software, APIs REST, modelagem de domínio, persistência, integração entre módulos, regras de negócio, roteirização, rastreabilidade, auditabilidade, CI e containerização**.
 
 ### Domínio principal
 
@@ -67,11 +52,13 @@ Missão      = execução aérea simulada vinculada a um pedido
 | Backend | Java 21 + Spring Boot 3.5.5 |
 | Frontend | React 19 + TypeScript + Vite |
 | Banco | PostgreSQL 17 + Flyway |
+| Persistência | Spring Data JPA + Hibernate |
 | Infra | Docker + Docker Compose + Nginx |
 | Mobile | Kotlin + Jetpack Compose |
 | CI | GitHub Actions |
 | Dispatch | Score por distância, carga, prioridade, SLA e risco |
 | Rotas | Haversine + otimização de sequência |
+| Rastreamento | Tracking por código + RotaCerta Live |
 | Drone | Elegibilidade, autorização auditável, timeline e simulação de voo |
 | Observabilidade | Spring Boot Actuator |
 
@@ -89,8 +76,7 @@ Visão consolidada da operação com indicadores de pedidos, entregas, falhas e 
 - múltiplos endereços;
 - endereço principal;
 - recebedores autorizados;
-- preferências de entrega;
-- janela preferencial;
+- preferências e janela de entrega;
 - instruções de entrega;
 - histórico de pedidos;
 - KPIs por cliente.
@@ -134,7 +120,7 @@ DELIVERED
 - confirmação de entrega;
 - registro de falha;
 - tracking integrado;
-- geração de link público temporário.
+- integração com despacho inteligente.
 
 ### ⚡ Smart Dispatch
 
@@ -211,7 +197,7 @@ OPEN → IN_PROGRESS → RESOLVED → CLOSED
 
 ### 📊 Relatórios
 
-Painel executivo consolidando dados reais de:
+Consolidação operacional de dados reais da aplicação:
 
 - pedidos;
 - entregas;
@@ -220,7 +206,7 @@ Painel executivo consolidando dados reais de:
 - veículos;
 - drones;
 - ocorrências;
-- distribuição dos pedidos por status.
+- distribuição de pedidos por status.
 
 ### ⚙️ Configurações
 
