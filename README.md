@@ -1,4 +1,8 @@
 <div align="center">
+<img src="docs/assets/rotacerta-banner-top.jpg" alt="RotaCerta Smart Logistics Platform" width="100%"><img src="docs/assets/rotacerta-banner-bottom.jpg" alt="RotaCerta Smart Logistics Platform" width="100%">
+</div>
+
+<div align="center">
 
 # 🚚 RotaCerta
 
