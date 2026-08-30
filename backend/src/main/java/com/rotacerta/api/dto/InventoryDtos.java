@@ -20,6 +20,8 @@ public final class InventoryDtos {
             String sku,
             String productName,
             BigDecimal unitPrice,
+            BigDecimal weightKg,
+            BigDecimal volumeM3,
             int totalQuantity,
             int reservedQuantity,
             int availableQuantity,
