@@ -1,6 +1,6 @@
-# RotaCerta 🚚📦
+# RotaCerta 🚚📦🚁
 
-> **Smart E-commerce Logistics & Delivery Platform**
+> **Smart E-commerce Logistics, Delivery & Drone Simulation Platform**
 
 [![Platform CI](https://github.com/juceliocoelho2022/rotacerta/actions/workflows/platform-ci.yml/badge.svg)](https://github.com/juceliocoelho2022/rotacerta/actions/workflows/platform-ci.yml)
 [![Android CI](https://github.com/juceliocoelho2022/rotacerta/actions/workflows/android-ci.yml/badge.svg)](https://github.com/juceliocoelho2022/rotacerta/actions/workflows/android-ci.yml)
@@ -13,19 +13,20 @@
 
 ## 📌 Visão geral
 
-**RotaCerta** é uma plataforma Full Stack para gestão de pedidos, clientes, entregas, despacho inteligente, rotas e rastreamento de última milha.
+**RotaCerta** é uma plataforma Full Stack para gestão de pedidos, clientes, entregas, despacho inteligente, rotas, rastreamento e simulação operacional de entregas por drone.
 
-O projeto simula o fluxo operacional de um e-commerce desde a criação do pedido até a confirmação da entrega, mantendo separadas três responsabilidades importantes:
+O projeto representa o fluxo de um e-commerce desde a criação do pedido até a confirmação da entrega e mantém separadas responsabilidades importantes do domínio:
 
 ```text
 Pedido   = demanda comercial e logística
 Entrega  = execução operacional
 Rota     = deslocamento e sequência de paradas
+Missão   = execução aérea simulada vinculada a um pedido
 ```
 
 A solução integra **React + TypeScript**, **Java 21 + Spring Boot**, **PostgreSQL 17**, **Flyway**, **Docker Compose** e um aplicativo Android em evolução com **Kotlin + Jetpack Compose**.
 
-O objetivo é demonstrar, em um único projeto de portfólio, conceitos de **engenharia de software, APIs REST, modelagem de domínio, persistência, logística, otimização operacional, rastreamento e experiência do cliente**.
+O objetivo é demonstrar conceitos de **engenharia de software, APIs REST, modelagem de domínio, persistência, logística, otimização operacional, rastreamento, auditabilidade e experiência do cliente** em um projeto de portfólio executável.
 
 ---
 
@@ -41,11 +42,11 @@ Painel central com visão operacional dos pedidos e entregas:
 - pedidos que saíram para entrega;
 - entregas concluídas;
 - falhas e ocorrências;
-- indicadores derivados de dados reais da API.
+- indicadores derivados da API.
 
 ### 👥 Customer Experience
 
-Módulo `/customers` com gestão real de clientes:
+Módulo `/customers` com:
 
 - cadastro de cliente;
 - telefone, e-mail, status e avaliação;
@@ -55,10 +56,9 @@ Módulo `/customers` com gestão real de clientes:
 - histórico de pedidos;
 - preferências de entrega;
 - canal de notificação;
-- janela preferencial de recebimento;
+- janela preferencial;
 - instruções de entrega;
-- KPIs por cliente;
-- painel lateral operacional.
+- KPIs por cliente.
 
 ### 🛒 Pedidos
 
@@ -66,21 +66,18 @@ Módulo `/orders` com centro operacional e criação completa de pedidos.
 
 Recursos implementados:
 
-- KPIs reais da API;
-- busca por pedido, cliente ou código de rastreio;
-- filtros por status, prioridade e modalidade;
+- busca e filtros;
 - prioridades `NORMAL`, `HIGH` e `URGENT`;
 - modalidades `STANDARD`, `EXPRESS`, `SAME_DAY` e `SCHEDULED`;
-- múltiplos itens por pedido;
-- quantidade, preço, peso e volume por item;
-- cálculo de valor total, peso total, volume total e volumes;
+- múltiplos itens;
+- preço, peso e volume por item;
+- cálculo de total, peso, volume e volumes;
 - snapshot do endereço de entrega;
-- data e janela de entrega por pedido;
+- data e janela de entrega;
 - instruções herdadas das preferências do cliente;
-- painel lateral com visão detalhada do pedido;
-- integração com RotaCerta Live quando o pedido está `OUT_FOR_DELIVERY`.
+- integração com RotaCerta Live.
 
-#### Wizard de criação
+Fluxo de criação:
 
 ```text
 Cliente
@@ -96,48 +93,39 @@ Revisão
 Criar pedido
 ```
 
-A criação é conectada diretamente a `POST /api/orders` e o novo pedido entra no fluxo com status `ORDER_CREATED`.
-
 ### 🚚 Entregas
 
 Módulo `/deliveries` para acompanhamento operacional:
 
-- pedidos elegíveis à operação logística;
-- filtros e monitoramento;
-- atribuição de motorista;
-- recálculo operacional;
-- acompanhamento do status da entrega;
-- integração com o Smart Dispatch.
+- atualização controlada de status;
+- confirmação de entrega;
+- registro de falha;
+- integração com Smart Dispatch;
+- sincronização com tracking.
 
 ### 🗺️ Rotas
 
-Módulo `/routes` para visualizar e otimizar as paradas de cada motorista:
+Módulo `/routes` para visualizar e otimizar as paradas de motoristas:
 
-- rota atual;
 - sequência de paradas;
 - distância estimada;
 - tempo estimado;
-- comparação antes/depois da otimização;
-- aplicação da nova sequência;
-- representação visual operacional da rota.
+- comparação antes/depois;
+- aplicação da sequência otimizada.
 
-> O cálculo atual utiliza coordenadas persistidas, distância de Haversine, velocidade média configurada e carga do motorista. **Trânsito externo em tempo real ainda não está integrado.**
+> O cálculo atual utiliza coordenadas persistidas, Haversine e velocidade média configurada. Trânsito externo em tempo real ainda não está integrado.
 
 ### ⚡ Smart Dispatch
 
-Motor de despacho para recomendar e atribuir pedidos a motoristas disponíveis.
-
-O cálculo considera atualmente:
+Motor de despacho que considera:
 
 - distância entre motorista e destino;
 - capacidade e carga atual;
-- prioridade do pedido/local;
-- SLA operacional;
-- ETA estimado;
+- prioridade;
+- SLA;
+- ETA;
 - risco operacional;
-- disponibilidade do motorista.
-
-Fluxo:
+- disponibilidade.
 
 ```text
 Pedido elegível
@@ -154,39 +142,169 @@ Atribuição
       ↓
 Rota do motorista
       ↓
-Otimização das paradas
+Otimização
 ```
 
 ### 📍 RotaCerta Live
 
-Quando a encomenda sai para entrega, o sistema pode gerar um link público temporário para acompanhamento.
+Quando o pedido sai para entrega, o sistema pode gerar um link público temporário:
 
 ```text
 OUT_FOR_DELIVERY
       ↓
 Sessão Live
       ↓
-Token público temporário
+Token temporário
       ↓
 /live/{token}
       ↓
-Timeline da entrega
+Timeline
       ↓
 Recebedor alternativo
 ```
 
-Recursos atuais:
+Recursos:
 
-- token público aleatório;
+- token aleatório;
 - expiração automática;
 - timeline da entrega;
-- atualização periódica da página;
-- autorização de familiar, vizinho, porteiro ou terceiro;
-- instruções para o entregador;
-- encerramento da sessão quando o fluxo termina;
-- persistência no PostgreSQL.
+- atualização periódica;
+- recebedor alternativo;
+- instruções ao entregador;
+- encerramento automático da sessão.
 
 Documentação técnica: [`docs/ROTACERTA_LIVE.md`](docs/ROTACERTA_LIVE.md)
+
+---
+
+## 🚁 Drone Delivery — SIMULATION_ONLY
+
+O módulo `/drones` implementa um protótipo operacional seguro de entrega por drone.
+
+**Importante:** o projeto não controla drones físicos, não fornece autorização regulatória real e não substitui ANAC, DECEA, ANATEL, meteorologia, geofencing, análise de obstáculos ou avaliação de zona segura.
+
+### Elegibilidade
+
+Antes de criar uma missão, o backend valida:
+
+- pedido em `READY_FOR_SHIPMENT`;
+- peso real dos itens;
+- coordenadas do destino;
+- missão já existente para o pedido;
+- drone disponível;
+- capacidade de carga;
+- alcance de ida e volta;
+- reserva mínima de bateria.
+
+Checks externos permanecem marcados como `PENDING_EXTERNAL`.
+
+### Estados da missão
+
+```text
+PLANNED
+   ↓
+AUTHORIZED
+   ↓
+LOADING
+   ↓
+READY_FOR_TAKEOFF
+   ↓
+IN_FLIGHT
+   ↓
+APPROACHING
+   ↓
+LOWERING_PACKAGE
+   ↓
+DELIVERED
+   ↓
+RETURNING
+   ↓
+COMPLETED
+```
+
+Ao entrar em `IN_FLIGHT`, o pedido avança de `READY_FOR_SHIPMENT` para `SHIPPED`.
+
+Ao entrar em `DELIVERED`, o orquestrador confirma automaticamente o pedido como `DELIVERED` e registra o tracking correspondente.
+
+Ao finalizar a missão, o drone retorna para `AVAILABLE`.
+
+### Authorization Audit Trail
+
+A autorização simulada é auditável e registra:
+
+- responsável;
+- decisão;
+- data/hora;
+- validade;
+- justificativa;
+- versão da política;
+- modo `SIMULATION_ONLY`;
+- checks internos;
+- checks externos pendentes;
+- evidências;
+- snapshot imutável do contexto;
+- fingerprint SHA-256.
+
+A aprovação exige evidência e `AUTHORIZED → LOADING` só ocorre com autorização ativa e contexto compatível.
+
+### Mission Timeline
+
+A migration V13 adiciona uma timeline operacional persistida para cada missão.
+
+Eventos registrados:
+
+```text
+MISSION_CREATED
+AUTHORIZATION_APPROVED / AUTHORIZATION_REJECTED
+STATUS_CHANGED → LOADING
+STATUS_CHANGED → READY_FOR_TAKEOFF
+STATUS_CHANGED → IN_FLIGHT
+STATUS_CHANGED → APPROACHING
+STATUS_CHANGED → LOWERING_PACKAGE
+STATUS_CHANGED → DELIVERED
+STATUS_CHANGED → RETURNING
+STATUS_CHANGED → COMPLETED
+```
+
+Missões antigas recebem apenas fatos históricos que podem ser reconstruídos com segurança; o sistema não inventa timestamps intermediários.
+
+### ✈️ Flight Control Center
+
+A tela `/drones` também possui uma **Central de Voo** com mapa operacional interno.
+
+Recursos:
+
+- seleção de missão;
+- origem e destino;
+- rota aérea representada em canvas SVG;
+- posição simulada do drone;
+- progresso da missão;
+- progresso do trecho;
+- distância restante;
+- ETA restante;
+- fase atual;
+- atualização automática a cada 5 segundos;
+- indicação explícita da fonte da posição.
+
+A posição é calculada por **interpolação entre origem e destino** usando o estado atual da missão e o tempo desde a última transição.
+
+```text
+Missão
+   ↓
+DroneFlightSimulationService
+   ↓
+Interpolação simulada
+   ↓
+Latitude / longitude calculadas
+   ↓
+Progresso + distância restante + ETA
+   ↓
+REST API
+   ↓
+React Flight Control Center
+```
+
+Não há GPS real, telemetria física nem integração com provedor de mapa externo nesta implementação.
 
 ---
 
@@ -200,6 +318,7 @@ Documentação técnica: [`docs/ROTACERTA_LIVE.md`](docs/ROTACERTA_LIVE.md)
 - React Router
 - Axios
 - Lucide React
+- SVG operacional
 - CSS responsivo
 - Nginx
 
@@ -222,7 +341,7 @@ Documentação técnica: [`docs/ROTACERTA_LIVE.md`](docs/ROTACERTA_LIVE.md)
 - Flyway
 - JPA / Hibernate
 - migrations versionadas
-- constraints e índices de suporte operacional
+- constraints e índices
 
 ### Infraestrutura e CI
 
@@ -232,7 +351,7 @@ Documentação técnica: [`docs/ROTACERTA_LIVE.md`](docs/ROTACERTA_LIVE.md)
 - Nginx
 - healthcheck do PostgreSQL
 - GitHub Actions
-- Platform CI para backend e frontend
+- Platform CI
 - Android CI
 
 ### Mobile
@@ -252,61 +371,32 @@ Documentação técnica: [`docs/ROTACERTA_LIVE.md`](docs/ROTACERTA_LIVE.md)
 ## 🏗️ Arquitetura
 
 ```text
-┌─────────────────────────────────────────┐
-│              React + Vite               │
-│ Dashboard • Clientes • Pedidos          │
-│ Entregas • Rotas • RotaCerta Live      │
-└──────────────────┬──────────────────────┘
-                   │ REST / JSON
-                   ▼
-┌─────────────────────────────────────────┐
-│          Spring Boot API / Java 21      │
-├─────────────────────────────────────────┤
-│ Controllers                             │
-│ Services / regras de negócio            │
-│ DTOs + Validation                       │
-│ Spring Data Repositories                │
-│ Transaction Management                  │
-│ Smart Dispatch / Route Engine           │
-└──────────────────┬──────────────────────┘
-                   │ JPA / Hibernate
-                   ▼
-┌─────────────────────────────────────────┐
-│              PostgreSQL 17              │
-│           Flyway Migrations             │
-└─────────────────────────────────────────┘
-
-Docker Compose orquestra frontend, backend e banco.
-```
-
----
-
-## 🔄 Fluxo de negócio
-
-```text
-Cliente
-  ↓
-Endereço + preferência de recebimento
-  ↓
-Pedido
-  ↓
-Itens + prioridade + modalidade
-  ↓
-Preparação
-  ↓
-Pedido elegível ao despacho
-  ↓
-Smart Dispatch
-  ↓
-Motorista
-  ↓
-Rota otimizada
-  ↓
-OUT_FOR_DELIVERY
-  ↓
-RotaCerta Live
-  ↓
-Entrega concluída
+┌─────────────────────────────────────────────┐
+│                React + Vite                 │
+│ Dashboard • Clientes • Pedidos • Entregas  │
+│ Rotas • Live • Drones • Flight Control     │
+└───────────────────┬─────────────────────────┘
+                    │ REST / JSON
+                    ▼
+┌─────────────────────────────────────────────┐
+│          Spring Boot API / Java 21          │
+├─────────────────────────────────────────────┤
+│ Controllers                                 │
+│ Services / regras de negócio                │
+│ DTOs + Validation                           │
+│ Spring Data Repositories                    │
+│ Transaction Management                      │
+│ Smart Dispatch / Route Engine               │
+│ Drone Mission Orchestration                 │
+│ Drone Mission Timeline                      │
+│ Flight Simulation Service                   │
+└───────────────────┬─────────────────────────┘
+                    │ JPA / Hibernate
+                    ▼
+┌─────────────────────────────────────────────┐
+│               PostgreSQL 17                 │
+│             Flyway Migrations               │
+└─────────────────────────────────────────────┘
 ```
 
 ---
@@ -326,17 +416,13 @@ GET  /api/customers
 GET  /api/customers/{id}
 POST /api/customers
 PUT  /api/customers/{id}
-
 GET  /api/customers/{id}/addresses
 POST /api/customers/{id}/addresses
-
 GET  /api/customers/{id}/authorized-recipients
 POST /api/customers/{id}/authorized-recipients
-
-GET /api/customers/{id}/preferences
-PUT /api/customers/{id}/preferences
-
-GET /api/customers/{id}/orders
+GET  /api/customers/{id}/preferences
+PUT  /api/customers/{id}/preferences
+GET  /api/customers/{id}/orders
 ```
 
 ### Pedidos
@@ -346,29 +432,6 @@ GET  /api/orders
 GET  /api/orders/{id}
 GET  /api/orders/{id}/detail
 POST /api/orders
-```
-
-Exemplo conceitual de criação:
-
-```json
-{
-  "customerId": 1,
-  "addressId": 1,
-  "priority": "HIGH",
-  "deliveryType": "SCHEDULED",
-  "deliveryDate": "2026-08-30",
-  "windowStart": "14:00:00",
-  "windowEnd": "18:00:00",
-  "items": [
-    {
-      "productName": "Notebook",
-      "quantity": 1,
-      "unitPrice": 4299.00,
-      "weightKg": 2.8,
-      "volumeM3": 0.015
-    }
-  ]
-}
 ```
 
 ### Entregas
@@ -392,18 +455,46 @@ POST  /api/dispatch/drivers/{driverId}/route/apply
 PATCH /api/dispatch/drivers/{driverId}/location
 ```
 
-### Rastreamento
+### Rastreamento / Live
 
 ```http
-GET /api/tracking/{trackingCode}
-```
-
-### RotaCerta Live
-
-```http
+GET  /api/tracking/{trackingCode}
 POST /api/deliveries/{id}/live-link
 GET  /api/public/live/{token}
 POST /api/public/live/{token}/recipient
+```
+
+### Drone Delivery
+
+```http
+GET   /api/drone-delivery/drones
+GET   /api/drone-delivery/missions
+GET   /api/drone-delivery/orders/{orderId}/eligibility
+POST  /api/drone-delivery/orders/{orderId}/missions
+GET   /api/drone-delivery/missions/{missionId}/authorizations
+POST  /api/drone-delivery/missions/{missionId}/authorizations
+GET   /api/drone-delivery/missions/{missionId}/timeline
+GET   /api/drone-delivery/missions/{missionId}/flight-simulation
+PATCH /api/drone-delivery/missions/{missionId}/status
+```
+
+Exemplo de resposta da simulação de voo:
+
+```json
+{
+  "missionId": 3,
+  "droneCode": "DR-001",
+  "status": "IN_FLIGHT",
+  "mode": "SIMULATION_ONLY",
+  "phase": "OUTBOUND",
+  "progressPercent": 42.5,
+  "legProgressPercent": 37.5,
+  "currentLatitude": -23.55145,
+  "currentLongitude": -46.65509,
+  "remainingDistanceKm": 3.71,
+  "remainingEtaMinutes": 7,
+  "positionSource": "SIMULATED_INTERPOLATION"
+}
 ```
 
 ---
@@ -423,8 +514,11 @@ Customer
       ├── TrackingEvent
       ├── LiveTrackingSession
       ├── DeliveryLocation
-      └── DeliveryAssignment
-             └── Driver
+      ├── DeliveryAssignment → Driver
+      └── DroneMission → Drone
+             ├── DroneMissionAuthorization
+             │      └── DroneAuthorizationEvidence
+             └── DroneMissionEvent
 ```
 
 Tabelas relevantes:
@@ -442,30 +536,35 @@ delivery_tracking_sessions
 delivery_locations
 delivery_assignments
 drivers
+drones
+drone_missions
+drone_mission_authorizations
+drone_authorization_evidence
+drone_mission_events
 flyway_schema_history
 ```
-
-A criação de um pedido grava um **snapshot do endereço e da janela de entrega**, evitando que alterações futuras no cadastro do cliente mudem o histórico logístico do pedido.
 
 ---
 
 ## 🧬 Flyway
 
-O banco evolui por migrations versionadas.
-
 ```text
-V1  create schema
-V2  seed demo data
-V3  live tracking sessions
-V4  smart dispatch
-V5  delivery operations metadata
-V6  driver vehicle metadata
-V7  route sequence
-V8  customer experience
-V9  order operations
+V1   create schema
+V2   seed demo data
+V3   live tracking sessions
+V4   smart dispatch
+V5   delivery operations metadata
+V6   driver vehicle metadata
+V7   route sequence
+V8   customer experience
+V9   order operations
+V10  driver photo
+V11  drone delivery
+V12  drone authorization audit
+V13  drone mission timeline
 ```
 
-A migration `V9__create_order_operations.sql` adiciona prioridade, modalidade, itens e snapshot de entrega aos pedidos, além de realizar backfill compatível para os registros anteriores.
+A posição simulada do Flight Control Center é calculada em runtime e, portanto, não exige migration adicional.
 
 ---
 
@@ -477,16 +576,9 @@ A migration `V9__create_order_operations.sql` adiciona prioridade, modalidade, i
 - Docker Compose
 - Git
 
-Clone:
-
 ```bash
 git clone https://github.com/juceliocoelho2022/rotacerta.git
 cd rotacerta
-```
-
-Suba o ambiente:
-
-```bash
 docker compose up -d --build
 ```
 
@@ -496,18 +588,10 @@ Verifique:
 docker compose ps
 ```
 
-Serviços esperados:
-
-```text
-rotacerta-postgres   healthy
-rotacerta-backend    running
-rotacerta-frontend   running
-```
-
-O Spring Boot pode levar alguns segundos após o container entrar em `Up`. Aguarde a inicialização antes de testar o Actuator.
+O backend pode levar cerca de 20–30 segundos para concluir a inicialização local.
 
 ```powershell
-Start-Sleep -Seconds 15
+Start-Sleep -Seconds 30
 Invoke-RestMethod http://localhost:8080/actuator/health
 ```
 
@@ -528,6 +612,8 @@ UP
 | Pedidos | `http://localhost:5173/orders` |
 | Entregas | `http://localhost:5173/deliveries` |
 | Rotas | `http://localhost:5173/routes` |
+| Motoristas | `http://localhost:5173/drivers` |
+| Drone Delivery / Flight Control | `http://localhost:5173/drones` |
 | Backend | `http://localhost:8080` |
 | Swagger | `http://localhost:8080/swagger-ui.html` |
 | Actuator | `http://localhost:8080/actuator/health` |
@@ -535,78 +621,42 @@ UP
 
 ---
 
-## 📁 Estrutura
-
-```text
-rotacerta/
-│
-├── app/                         # Android / Kotlin / Compose
-├── backend/                     # Java 21 + Spring Boot
-│   ├── src/main/java/com/rotacerta/api/
-│   │   ├── config/
-│   │   ├── controller/
-│   │   ├── dto/
-│   │   ├── model/
-│   │   ├── repository/
-│   │   └── service/
-│   └── src/main/resources/db/migration/
-│
-├── frontend/                    # React + TypeScript + Vite
-│   └── src/
-│       ├── components/
-│       ├── pages/
-│       ├── services/
-│       └── styles/
-│
-├── database/
-├── docs/
-│   └── ROTACERTA_LIVE.md
-│
-├── docker-compose.yml
-└── README.md
-```
-
----
-
 ## ✅ Status atual
 
 ### Implementado e validado
 
-- [x] Frontend React + TypeScript
-- [x] Backend Java 21 + Spring Boot
+- [x] React + TypeScript
+- [x] Java 21 + Spring Boot
 - [x] PostgreSQL + Flyway
 - [x] Docker Compose
 - [x] Swagger / OpenAPI
 - [x] Actuator
 - [x] Dashboard executivo
 - [x] Customer Experience
-- [x] Cadastro de clientes
-- [x] Múltiplos endereços
-- [x] Recebedores autorizados
-- [x] Preferências e janela de entrega
 - [x] Centro operacional de Pedidos
-- [x] Wizard de novo pedido
-- [x] Criação real de pedido pela interface
-- [x] Itens, prioridade e modalidade de entrega
-- [x] Snapshot do destino
-- [x] Gestão operacional de Entregas
+- [x] Gestão de Entregas
 - [x] Smart Dispatch
-- [x] Route Engine com otimização de sequência
+- [x] Route Engine
 - [x] Rastreamento por código
-- [x] Histórico de eventos
 - [x] RotaCerta Live
+- [x] Centro operacional de Motoristas
+- [x] foto de motorista persistida
+- [x] Drone Delivery em `SIMULATION_ONLY`
+- [x] elegibilidade de drone
+- [x] Authorization Audit Trail
+- [x] sincronização missão `DELIVERED` → pedido `DELIVERED`
+- [x] Mission Timeline com 10 eventos em missão nova
+- [x] Flight Control Center com posição interpolada
 - [x] CI de frontend e backend
-- [x] Aplicativo Android em evolução
+- [x] aplicativo Android em evolução
 
 ### Em evolução
 
-- [ ] integrar pedidos recém-criados ao Smart Dispatch de forma automática/controlada
-- [ ] utilizar janela de entrega como restrição explícita no Route Engine
-- [ ] tela operacional completa de Motoristas
-- [ ] gestão de Frota/Veículos
-- [ ] prova de entrega com recebedor, data/hora e evidência
-- [ ] GPS em tempo real do motorista
+- [ ] GPS real do motorista
+- [ ] telemetria física de drone
+- [ ] mapa externo / tiles geográficos
 - [ ] tráfego externo e ETA dinâmico
+- [ ] integrações regulatórias e meteorológicas reais para drones
 - [ ] notificações reais por e-mail/SMS/WhatsApp
 - [ ] Spring Security + JWT
 - [ ] perfis `ADMIN`, `CUSTOMER` e `DRIVER`
@@ -626,17 +676,19 @@ rotacerta/
 - Repository Pattern;
 - injeção de dependência;
 - API REST;
-- validação de entrada;
+- validação;
 - transações Spring;
 - JPA/Hibernate;
-- Flyway Database Migrations;
+- Flyway;
 - snapshots para preservação histórica;
-- cálculo de distância geográfica com Haversine;
+- SHA-256 para fingerprint de contexto;
+- audit trail;
+- Haversine;
+- interpolação geográfica simulada;
 - heurística de despacho;
-- otimização de sequência de paradas;
+- otimização de sequência;
 - containerização;
-- configuração por variáveis de ambiente;
-- SPA com React;
+- SPA React;
 - CI com GitHub Actions;
 - Conventional Commits;
 - evolução incremental por branches e pull requests.
