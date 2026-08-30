@@ -13,7 +13,7 @@ import { Vehicles } from './pages/Vehicles'
 import { Incidents } from './pages/Incidents'
 import { Reports } from './pages/Reports'
 import { Settings } from './pages/Settings'
-import { Placeholder } from './pages/Placeholder'
+import { Stock } from './pages/Stock'
 
 export default function App() {
   return (
@@ -32,7 +32,7 @@ export default function App() {
           <Route path="/vehicles" element={<Vehicles />} />
           <Route path="/incidents" element={<Incidents />} />
           <Route path="/reports" element={<Reports />} />
-          <Route path="/stock" element={<Placeholder title="Estoque" />} />
+          <Route path="/stock" element={<Stock />} />
           <Route path="/settings" element={<Settings />} />
         </Route>
       </Routes>
