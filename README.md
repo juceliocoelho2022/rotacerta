@@ -306,6 +306,28 @@ React Flight Control Center
 
 Não há GPS real, telemetria física nem integração com provedor de mapa externo nesta implementação.
 
+### 🎬 Demonstração operacional gravada
+
+Uma demonstração em vídeo do módulo foi validada cobrindo o início do fluxo operacional:
+
+```text
+Pedido elegível
+   ↓
+Análise de peso + coordenadas + distância + ETA
+   ↓
+DR-001 recomendado
+   ↓
+Criação da missão simulada
+   ↓
+Drone reservado (`RESERVED`)
+   ↓
+Missão `PLANNED`
+   ↓
+Authorization Audit Trail
+```
+
+A gravação comprova a integração entre pedido, motor de elegibilidade, seleção de drone, reserva operacional e governança da autorização. A **Flight Control Center** complementa essa demonstração com o acompanhamento visual da rota e da posição simulada durante `IN_FLIGHT`.
+
 ---
 
 ## 🧱 Stack tecnológica
