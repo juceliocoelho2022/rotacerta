@@ -1,153 +1,238 @@
-# RotaCerta 🚚📦🚁
+<div align="center">
 
-> **Smart E-commerce Logistics, Delivery & Drone Simulation Platform**
+# 🚚 RotaCerta
+
+### Smart Logistics, Delivery Operations & Drone Simulation Platform
+
+**Uma plataforma Full Stack para gestão de pedidos, clientes, entregas, motoristas, veículos, rotas, ocorrências, relatórios, configurações e simulação operacional de entregas por drone.**
 
 [![Platform CI](https://github.com/juceliocoelho2022/rotacerta/actions/workflows/platform-ci.yml/badge.svg)](https://github.com/juceliocoelho2022/rotacerta/actions/workflows/platform-ci.yml)
 [![Android CI](https://github.com/juceliocoelho2022/rotacerta/actions/workflows/android-ci.yml/badge.svg)](https://github.com/juceliocoelho2022/rotacerta/actions/workflows/android-ci.yml)
+
 ![Java](https://img.shields.io/badge/Java-21-orange)
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5.5-6DB33F)
 ![React](https://img.shields.io/badge/React-19-61DAFB)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169E1)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED)
+![Kotlin](https://img.shields.io/badge/Kotlin-Android-7F52FF)
 
-## 📌 Visão geral
+**Java 21 · Spring Boot · React · TypeScript · PostgreSQL · Flyway · Docker · Kotlin · Jetpack Compose**
 
-**RotaCerta** é uma plataforma Full Stack para gestão de pedidos, clientes, entregas, despacho inteligente, rotas, rastreamento e simulação operacional de entregas por drone.
-
-O projeto representa o fluxo de um e-commerce desde a criação do pedido até a confirmação da entrega e mantém separadas responsabilidades importantes do domínio:
-
-```text
-Pedido   = demanda comercial e logística
-Entrega  = execução operacional
-Rota     = deslocamento e sequência de paradas
-Missão   = execução aérea simulada vinculada a um pedido
-```
-
-A solução integra **React + TypeScript**, **Java 21 + Spring Boot**, **PostgreSQL 17**, **Flyway**, **Docker Compose** e um aplicativo Android em evolução com **Kotlin + Jetpack Compose**.
-
-O objetivo é demonstrar conceitos de **engenharia de software, APIs REST, modelagem de domínio, persistência, logística, otimização operacional, rastreamento, auditabilidade e experiência do cliente** em um projeto de portfólio executável.
+</div>
 
 ---
 
-## ✨ Principais módulos
+## 📌 Sobre o projeto
 
-### 🧭 Dashboard executivo
+O **RotaCerta** é uma plataforma de logística construída como projeto de engenharia de software e portfólio técnico. A aplicação modela o ciclo de uma operação de entrega, da criação do pedido até a entrega ao cliente, combinando operação terrestre, rastreamento e um módulo de drone estritamente em modo de simulação.
 
-Painel central com visão operacional dos pedidos e entregas:
+O projeto foi estruturado para demonstrar aplicação prática de:
 
-- total de pedidos;
-- pedidos em preparação;
-- entregas em trânsito;
-- pedidos que saíram para entrega;
-- entregas concluídas;
-- falhas e ocorrências;
-- indicadores derivados da API.
+- arquitetura em camadas;
+- modelagem de domínio;
+- APIs REST;
+- persistência relacional;
+- regras de negócio;
+- despacho inteligente;
+- roteirização;
+- rastreabilidade;
+- audit trail;
+- indicadores operacionais;
+- CI com GitHub Actions;
+- containerização com Docker.
 
-### 👥 Customer Experience
+### Domínio principal
 
-Módulo `/customers` com:
+```text
+Pedido      = demanda comercial e logística
+Entrega     = execução operacional
+Rota        = sequência de deslocamento e paradas
+Motorista   = responsável pela execução terrestre
+Veículo     = recurso operacional da frota
+Ocorrência  = exceção operacional auditável
+Missão      = execução aérea simulada vinculada a um pedido
+```
 
-- cadastro de cliente;
-- telefone, e-mail, status e avaliação;
+---
+
+## ⭐ Destaques técnicos
+
+| Área | Implementação |
+|---|---|
+| Backend | Java 21 + Spring Boot 3.5.5 |
+| Frontend | React 19 + TypeScript + Vite |
+| Banco | PostgreSQL 17 + Flyway |
+| Infra | Docker + Docker Compose + Nginx |
+| Mobile | Kotlin + Jetpack Compose |
+| CI | GitHub Actions |
+| Dispatch | Score por distância, carga, prioridade, SLA e risco |
+| Rotas | Haversine + otimização de sequência |
+| Drone | Elegibilidade, autorização auditável, timeline e simulação de voo |
+| Observabilidade | Spring Boot Actuator |
+
+---
+
+## 🧩 Módulos implementados
+
+### 🧭 Dashboard Executivo
+
+Visão consolidada da operação com indicadores de pedidos, entregas, falhas e andamento logístico.
+
+### 👥 Clientes — Customer Experience
+
+- cadastro e gestão de clientes;
 - múltiplos endereços;
 - endereço principal;
-- pessoas autorizadas a receber;
-- histórico de pedidos;
+- recebedores autorizados;
 - preferências de entrega;
-- canal de notificação;
 - janela preferencial;
 - instruções de entrega;
+- histórico de pedidos;
 - KPIs por cliente.
 
 ### 🛒 Pedidos
 
-Módulo `/orders` com centro operacional e criação completa de pedidos.
-
-Recursos implementados:
-
-- busca e filtros;
+- criação completa de pedidos;
+- múltiplos itens;
+- preço, peso e volume;
 - prioridades `NORMAL`, `HIGH` e `URGENT`;
 - modalidades `STANDARD`, `EXPRESS`, `SAME_DAY` e `SCHEDULED`;
-- múltiplos itens;
-- preço, peso e volume por item;
-- cálculo de total, peso, volume e volumes;
-- snapshot do endereço de entrega;
+- snapshot do endereço;
 - data e janela de entrega;
-- instruções herdadas das preferências do cliente;
-- integração com RotaCerta Live.
+- integração com Smart Dispatch.
 
-Fluxo de criação:
+Fluxo operacional:
 
 ```text
-Cliente
-   ↓
-Produtos
-   ↓
-Endereço
-   ↓
-Entrega
-   ↓
-Revisão
-   ↓
-Criar pedido
+ORDER_CREATED
+    ↓
+PAYMENT_APPROVED
+    ↓
+PICKING
+    ↓
+PACKING
+    ↓
+READY_FOR_SHIPMENT
+    ↓
+SHIPPED
+    ↓
+IN_TRANSIT
+    ↓
+OUT_FOR_DELIVERY
+    ↓
+DELIVERED
 ```
 
 ### 🚚 Entregas
 
-Módulo `/deliveries` para acompanhamento operacional:
-
 - atualização controlada de status;
 - confirmação de entrega;
 - registro de falha;
-- integração com Smart Dispatch;
-- sincronização com tracking.
-
-### 🗺️ Rotas
-
-Módulo `/routes` para visualizar e otimizar as paradas de motoristas:
-
-- sequência de paradas;
-- distância estimada;
-- tempo estimado;
-- comparação antes/depois;
-- aplicação da sequência otimizada.
-
-> O cálculo atual utiliza coordenadas persistidas, Haversine e velocidade média configurada. Trânsito externo em tempo real ainda não está integrado.
+- tracking integrado;
+- geração de link público temporário.
 
 ### ⚡ Smart Dispatch
 
-Motor de despacho que considera:
-
-- distância entre motorista e destino;
-- capacidade e carga atual;
-- prioridade;
-- SLA;
-- ETA;
-- risco operacional;
-- disponibilidade.
+O motor de despacho considera:
 
 ```text
-Pedido elegível
-      ↓
-Localização de entrega
-      ↓
-Motoristas disponíveis
-      ↓
-Score de despacho
-      ↓
-Melhor candidato
-      ↓
-Atribuição
-      ↓
-Rota do motorista
-      ↓
-Otimização
+Distância
++ disponibilidade
++ carga/capacidade
++ prioridade
++ modalidade de entrega
++ SLA
++ janela de entrega
++ risco operacional
+= score do melhor motorista
 ```
+
+### 🗺️ Rotas
+
+- sequência de paradas;
+- distância estimada;
+- ETA;
+- comparação antes/depois da otimização;
+- aplicação da rota otimizada.
+
+> O cálculo atual utiliza coordenadas persistidas e Haversine. Trânsito externo em tempo real ainda não está integrado.
+
+### 👨‍✈️ Motoristas
+
+- cadastro operacional;
+- disponibilidade;
+- capacidade atual e máxima;
+- localização persistida;
+- veículo vinculado;
+- foto de perfil persistida;
+- acesso a rota e entregas.
+
+### 🚐 Veículos
+
+- cadastro da frota;
+- placa e modelo;
+- tipo de veículo;
+- capacidade;
+- odômetro;
+- combustível;
+- manutenção programada;
+- vínculo com motorista;
+- status operacional.
+
+Estados suportados:
+
+```text
+AVAILABLE
+IN_OPERATION
+MAINTENANCE
+OUT_OF_SERVICE
+```
+
+### ⚠️ Ocorrências
+
+Centro operacional de exceções com:
+
+- vínculo opcional com pedido, motorista e veículo;
+- severidades `LOW`, `MEDIUM`, `HIGH` e `CRITICAL`;
+- categorias operacionais;
+- descrição, localização e resolução;
+- histórico de abertura e encerramento.
+
+Fluxo:
+
+```text
+OPEN → IN_PROGRESS → RESOLVED → CLOSED
+```
+
+### 📊 Relatórios
+
+Painel executivo consolidando dados reais de:
+
+- pedidos;
+- entregas;
+- receita entregue;
+- motoristas;
+- veículos;
+- drones;
+- ocorrências;
+- distribuição dos pedidos por status.
+
+### ⚙️ Configurações
+
+Configurações persistidas em PostgreSQL para parâmetros como:
+
+- despacho automático;
+- SLA padrão;
+- RotaCerta Live;
+- Drone Simulation;
+- canal padrão de notificação;
+- alerta de manutenção;
+- moeda dos relatórios.
 
 ### 📍 RotaCerta Live
 
-Quando o pedido sai para entrega, o sistema pode gerar um link público temporário:
+Link público temporário para acompanhamento da entrega:
 
 ```text
 OUT_FOR_DELIVERY
@@ -163,42 +248,27 @@ Timeline
 Recebedor alternativo
 ```
 
-Recursos:
+### 🚁 Drone Delivery — `SIMULATION_ONLY`
 
-- token aleatório;
-- expiração automática;
-- timeline da entrega;
-- atualização periódica;
-- recebedor alternativo;
-- instruções ao entregador;
-- encerramento automático da sessão.
+O módulo aéreo foi desenvolvido como **simulador operacional seguro**.
 
-Documentação técnica: [`docs/ROTACERTA_LIVE.md`](docs/ROTACERTA_LIVE.md)
+Recursos implementados:
 
----
+- análise de elegibilidade do pedido;
+- peso real da carga;
+- alcance e bateria;
+- seleção do drone compatível;
+- criação e reserva da missão;
+- Authorization Audit Trail;
+- evidências de autorização;
+- fingerprint SHA-256 do contexto;
+- Mission Timeline persistida;
+- sincronização com o status do pedido;
+- Flight Control Center;
+- posição simulada por interpolação;
+- progresso, distância restante e ETA.
 
-## 🚁 Drone Delivery — SIMULATION_ONLY
-
-O módulo `/drones` implementa um protótipo operacional seguro de entrega por drone.
-
-**Importante:** o projeto não controla drones físicos, não fornece autorização regulatória real e não substitui ANAC, DECEA, ANATEL, meteorologia, geofencing, análise de obstáculos ou avaliação de zona segura.
-
-### Elegibilidade
-
-Antes de criar uma missão, o backend valida:
-
-- pedido em `READY_FOR_SHIPMENT`;
-- peso real dos itens;
-- coordenadas do destino;
-- missão já existente para o pedido;
-- drone disponível;
-- capacidade de carga;
-- alcance de ida e volta;
-- reserva mínima de bateria.
-
-Checks externos permanecem marcados como `PENDING_EXTERNAL`.
-
-### Estados da missão
+Fluxo da missão:
 
 ```text
 PLANNED
@@ -222,270 +292,107 @@ RETURNING
 COMPLETED
 ```
 
-Ao entrar em `IN_FLIGHT`, o pedido avança de `READY_FOR_SHIPMENT` para `SHIPPED`.
-
-Ao entrar em `DELIVERED`, o orquestrador confirma automaticamente o pedido como `DELIVERED` e registra o tracking correspondente.
-
-Ao finalizar a missão, o drone retorna para `AVAILABLE`.
-
-### Authorization Audit Trail
-
-A autorização simulada é auditável e registra:
-
-- responsável;
-- decisão;
-- data/hora;
-- validade;
-- justificativa;
-- versão da política;
-- modo `SIMULATION_ONLY`;
-- checks internos;
-- checks externos pendentes;
-- evidências;
-- snapshot imutável do contexto;
-- fingerprint SHA-256.
-
-A aprovação exige evidência e `AUTHORIZED → LOADING` só ocorre com autorização ativa e contexto compatível.
-
-### Mission Timeline
-
-A migration V13 adiciona uma timeline operacional persistida para cada missão.
-
-Eventos registrados:
-
-```text
-MISSION_CREATED
-AUTHORIZATION_APPROVED / AUTHORIZATION_REJECTED
-STATUS_CHANGED → LOADING
-STATUS_CHANGED → READY_FOR_TAKEOFF
-STATUS_CHANGED → IN_FLIGHT
-STATUS_CHANGED → APPROACHING
-STATUS_CHANGED → LOWERING_PACKAGE
-STATUS_CHANGED → DELIVERED
-STATUS_CHANGED → RETURNING
-STATUS_CHANGED → COMPLETED
-```
-
-Missões antigas recebem apenas fatos históricos que podem ser reconstruídos com segurança; o sistema não inventa timestamps intermediários.
-
-### ✈️ Flight Control Center
-
-A tela `/drones` também possui uma **Central de Voo** com mapa operacional interno.
-
-Recursos:
-
-- seleção de missão;
-- origem e destino;
-- rota aérea representada em canvas SVG;
-- posição simulada do drone;
-- progresso da missão;
-- progresso do trecho;
-- distância restante;
-- ETA restante;
-- fase atual;
-- atualização automática a cada 5 segundos;
-- indicação explícita da fonte da posição.
-
-A posição é calculada por **interpolação entre origem e destino** usando o estado atual da missão e o tempo desde a última transição.
-
-```text
-Missão
-   ↓
-DroneFlightSimulationService
-   ↓
-Interpolação simulada
-   ↓
-Latitude / longitude calculadas
-   ↓
-Progresso + distância restante + ETA
-   ↓
-REST API
-   ↓
-React Flight Control Center
-```
-
-Não há GPS real, telemetria física nem integração com provedor de mapa externo nesta implementação.
-
-### 🎬 Demonstração dinâmica validada
-
-Foi validada uma gravação de aproximadamente **2min53s** da Central de Voo com a missão em `IN_FLIGHT`.
-
-Durante a gravação é possível observar o comportamento dinâmico da simulação:
-
-```text
-Missão IN_FLIGHT
-   ↓
-Posição interpolada recalculada
-   ↓
-Marcador do DR-001 avança na rota
-   ↓
-Progresso da missão aumenta
-   ↓
-Distância restante diminui
-   ↓
-ETA restante é recalculado
-```
-
-A demonstração também mantém visíveis o modo `SIMULATION_ONLY`, a origem, o destino, a identificação da missão, o drone utilizado e os indicadores operacionais. O vídeo comprova que a Central de Voo não é apenas uma representação estática: o frontend consulta periodicamente o backend e apresenta a evolução da posição simulada ao longo do trecho.
-
-Essa validação permanece estritamente simulada. Não há GPS real, telemetria física, controle de hardware ou autorização regulatória real.
-
----
-
-## 🧱 Stack tecnológica
-
-### Frontend
-
-- React 19
-- TypeScript
-- Vite
-- React Router
-- Axios
-- Lucide React
-- SVG operacional
-- CSS responsivo
-- Nginx
-
-### Backend
-
-- Java 21
-- Spring Boot 3.5.5
-- Spring Web
-- Spring Data JPA
-- Spring Validation
-- Spring Transactions
-- Spring Boot Actuator
-- Hibernate ORM
-- Maven
-- Swagger / OpenAPI
-
-### Banco de dados
-
-- PostgreSQL 17
-- Flyway
-- JPA / Hibernate
-- migrations versionadas
-- constraints e índices
-
-### Infraestrutura e CI
-
-- Docker
-- Docker Compose
-- Dockerfiles multi-stage
-- Nginx
-- healthcheck do PostgreSQL
-- GitHub Actions
-- Platform CI
-- Android CI
-
-### Mobile
-
-- Kotlin
-- Jetpack Compose
-- Material 3
-- Navigation Compose
-- Hilt
-- CameraX
-- ML Kit Barcode Scanning
-- ViewModel + StateFlow
-- JUnit / MockK
+> **Importante:** o projeto não controla drones físicos, não utiliza GPS real no módulo aéreo e não representa aprovação regulatória real de ANAC, DECEA ou ANATEL.
 
 ---
 
 ## 🏗️ Arquitetura
 
 ```text
-┌─────────────────────────────────────────────┐
-│                React + Vite                 │
-│ Dashboard • Clientes • Pedidos • Entregas  │
-│ Rotas • Live • Drones • Flight Control     │
-└───────────────────┬─────────────────────────┘
-                    │ REST / JSON
-                    ▼
-┌─────────────────────────────────────────────┐
-│          Spring Boot API / Java 21          │
-├─────────────────────────────────────────────┤
-│ Controllers                                 │
-│ Services / regras de negócio                │
-│ DTOs + Validation                           │
-│ Spring Data Repositories                    │
-│ Transaction Management                      │
-│ Smart Dispatch / Route Engine               │
-│ Drone Mission Orchestration                 │
-│ Drone Mission Timeline                      │
-│ Flight Simulation Service                   │
-└───────────────────┬─────────────────────────┘
-                    │ JPA / Hibernate
-                    ▼
-┌─────────────────────────────────────────────┐
-│               PostgreSQL 17                 │
-│             Flyway Migrations               │
-└─────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────┐
+│                React 19 + TypeScript                 │
+│                                                      │
+│ Dashboard • Clientes • Pedidos • Entregas • Rotas   │
+│ Motoristas • Veículos • Ocorrências • Relatórios    │
+│ Configurações • Drones • Flight Control • Live      │
+└──────────────────────────┬───────────────────────────┘
+                           │ REST / JSON
+                           ▼
+┌──────────────────────────────────────────────────────┐
+│              Spring Boot API · Java 21               │
+│                                                      │
+│ Controllers • Services • DTOs • Validation           │
+│ JPA/Hibernate • Transactions • Smart Dispatch        │
+│ Route Engine • Drone Mission Orchestration           │
+│ Mission Timeline • Authorization Audit               │
+│ Flight Simulation • Reports                          │
+└──────────────────────────┬───────────────────────────┘
+                           │ JPA / Hibernate
+                           ▼
+┌──────────────────────────────────────────────────────┐
+│              PostgreSQL 17 + Flyway                  │
+└──────────────────────────────────────────────────────┘
+
+Android App
+Kotlin • Jetpack Compose • CameraX • ML Kit • Hilt
 ```
 
 ---
 
-## 🔌 API REST
+## 🗄️ Banco de dados e migrations
 
-### Dashboard
+O banco é versionado por Flyway.
 
-```http
-GET /api/dashboard
+```text
+V1   create schema
+V2   seed demo data
+V3   live tracking sessions
+V4   smart dispatch
+V5   delivery operations metadata
+V6   driver vehicle metadata
+V7   route sequence
+V8   customer experience
+V9   order operations
+V10  driver photo
+V11  drone delivery
+V12  drone authorization audit
+V13  drone mission timeline
+V14  operations suite
 ```
 
-### Clientes
+A V14 adiciona os domínios:
+
+```text
+vehicles
+incidents
+system_settings
+```
+
+---
+
+## 🔌 Principais endpoints
+
+### Clientes e pedidos
 
 ```http
 GET  /api/customers
-GET  /api/customers/{id}
 POST /api/customers
-PUT  /api/customers/{id}
-GET  /api/customers/{id}/addresses
-POST /api/customers/{id}/addresses
-GET  /api/customers/{id}/authorized-recipients
-POST /api/customers/{id}/authorized-recipients
-GET  /api/customers/{id}/preferences
-PUT  /api/customers/{id}/preferences
-GET  /api/customers/{id}/orders
-```
-
-### Pedidos
-
-```http
 GET  /api/orders
-GET  /api/orders/{id}
-GET  /api/orders/{id}/detail
 POST /api/orders
+GET  /api/orders/{id}/detail
 ```
 
-### Entregas
+### Operação terrestre
 
 ```http
-PATCH /api/deliveries/{id}/status
-POST  /api/deliveries/{id}/confirm
-POST  /api/deliveries/{id}/failure
-```
-
-### Smart Dispatch
-
-```http
+GET   /api/drivers
+GET   /api/vehicles
+POST  /api/vehicles
 GET   /api/dispatch/monitoring
 POST  /api/dispatch/auto-plan
-POST  /api/dispatch/orders/{orderId}/assign
-GET   /api/dispatch/orders/{orderId}
 GET   /api/dispatch/drivers/{driverId}/route
 POST  /api/dispatch/drivers/{driverId}/route/optimize
-POST  /api/dispatch/drivers/{driverId}/route/apply
-PATCH /api/dispatch/drivers/{driverId}/location
 ```
 
-### Rastreamento / Live
+### Ocorrências, relatórios e configurações
 
 ```http
-GET  /api/tracking/{trackingCode}
-POST /api/deliveries/{id}/live-link
-GET  /api/public/live/{token}
-POST /api/public/live/{token}/recipient
+GET   /api/incidents
+POST  /api/incidents
+PATCH /api/incidents/{id}/status
+GET   /api/reports/operations
+GET   /api/settings
+PUT   /api/settings/{key}
 ```
 
 ### Drone Delivery
@@ -502,97 +409,18 @@ GET   /api/drone-delivery/missions/{missionId}/flight-simulation
 PATCH /api/drone-delivery/missions/{missionId}/status
 ```
 
-Exemplo de resposta da simulação de voo:
+### RotaCerta Live
 
-```json
-{
-  "missionId": 3,
-  "droneCode": "DR-001",
-  "status": "IN_FLIGHT",
-  "mode": "SIMULATION_ONLY",
-  "phase": "OUTBOUND",
-  "progressPercent": 42.5,
-  "legProgressPercent": 37.5,
-  "currentLatitude": -23.55145,
-  "currentLongitude": -46.65509,
-  "remainingDistanceKm": 3.71,
-  "remainingEtaMinutes": 7,
-  "positionSource": "SIMULATED_INTERPOLATION"
-}
+```http
+GET  /api/tracking/{trackingCode}
+POST /api/deliveries/{id}/live-link
+GET  /api/public/live/{token}
+POST /api/public/live/{token}/recipient
 ```
 
 ---
 
-## 🗄️ Modelo de dados
-
-Domínios principais:
-
-```text
-Customer
- ├── CustomerAddress
- ├── AuthorizedRecipient
- ├── DeliveryPreference
- └── Order
-      ├── OrderItem
-      ├── OrderDeliveryDetails
-      ├── TrackingEvent
-      ├── LiveTrackingSession
-      ├── DeliveryLocation
-      ├── DeliveryAssignment → Driver
-      └── DroneMission → Drone
-             ├── DroneMissionAuthorization
-             │      └── DroneAuthorizationEvidence
-             └── DroneMissionEvent
-```
-
-Tabelas relevantes:
-
-```text
-customers
-customer_addresses
-authorized_recipients
-delivery_preferences
-orders
-order_items
-order_delivery_details
-tracking_events
-delivery_tracking_sessions
-delivery_locations
-delivery_assignments
-drivers
-drones
-drone_missions
-drone_mission_authorizations
-drone_authorization_evidence
-drone_mission_events
-flyway_schema_history
-```
-
----
-
-## 🧬 Flyway
-
-```text
-V1   create schema
-V2   seed demo data
-V3   live tracking sessions
-V4   smart dispatch
-V5   delivery operations metadata
-V6   driver vehicle metadata
-V7   route sequence
-V8   customer experience
-V9   order operations
-V10  driver photo
-V11  drone delivery
-V12  drone authorization audit
-V13  drone mission timeline
-```
-
-A posição simulada do Flight Control Center é calculada em runtime e, portanto, não exige migration adicional.
-
----
-
-## 🐳 Executando localmente
+## 🐳 Como executar
 
 ### Pré-requisitos
 
@@ -606,13 +434,7 @@ cd rotacerta
 docker compose up -d --build
 ```
 
-Verifique:
-
-```bash
-docker compose ps
-```
-
-O backend pode levar cerca de 20–30 segundos para concluir a inicialização local.
+Aguarde a inicialização do backend e valide:
 
 ```powershell
 Start-Sleep -Seconds 30
@@ -629,60 +451,53 @@ UP
 
 ### URLs locais
 
-| Serviço | Endereço |
+| Módulo | URL |
 |---|---|
-| Dashboard | `http://localhost:5173/` |
-| Clientes | `http://localhost:5173/customers` |
-| Pedidos | `http://localhost:5173/orders` |
-| Entregas | `http://localhost:5173/deliveries` |
-| Rotas | `http://localhost:5173/routes` |
-| Motoristas | `http://localhost:5173/drivers` |
-| Drone Delivery / Flight Control | `http://localhost:5173/drones` |
+| Dashboard | `http://127.0.0.1:5173/` |
+| Clientes | `http://127.0.0.1:5173/customers` |
+| Pedidos | `http://127.0.0.1:5173/orders` |
+| Entregas | `http://127.0.0.1:5173/deliveries` |
+| Rotas | `http://127.0.0.1:5173/routes` |
+| Motoristas | `http://127.0.0.1:5173/drivers` |
+| Veículos | `http://127.0.0.1:5173/vehicles` |
+| Ocorrências | `http://127.0.0.1:5173/incidents` |
+| Relatórios | `http://127.0.0.1:5173/reports` |
+| Configurações | `http://127.0.0.1:5173/settings` |
+| Drone Delivery | `http://127.0.0.1:5173/drones` |
 | Backend | `http://localhost:8080` |
 | Swagger | `http://localhost:8080/swagger-ui.html` |
 | Actuator | `http://localhost:8080/actuator/health` |
-| PostgreSQL | `localhost:5432` |
 
 ---
 
-## ✅ Status atual
+## ✅ Status do projeto
 
-### Implementado e validado
+### Implementado
 
-- [x] React + TypeScript
-- [x] Java 21 + Spring Boot
-- [x] PostgreSQL + Flyway
-- [x] Docker Compose
-- [x] Swagger / OpenAPI
-- [x] Actuator
 - [x] Dashboard executivo
 - [x] Customer Experience
-- [x] Centro operacional de Pedidos
-- [x] Gestão de Entregas
+- [x] Pedidos
+- [x] Entregas
 - [x] Smart Dispatch
 - [x] Route Engine
+- [x] Motoristas
+- [x] Veículos
+- [x] Ocorrências
+- [x] Relatórios
+- [x] Configurações
 - [x] Rastreamento por código
 - [x] RotaCerta Live
-- [x] Centro operacional de Motoristas
-- [x] foto de motorista persistida
-- [x] Drone Delivery em `SIMULATION_ONLY`
-- [x] elegibilidade de drone
+- [x] Drone Delivery `SIMULATION_ONLY`
 - [x] Authorization Audit Trail
-- [x] sincronização missão `DELIVERED` → pedido `DELIVERED`
-- [x] Mission Timeline com 10 eventos em missão nova
-- [x] Flight Control Center com posição interpolada
-- [x] movimentação dinâmica da Central de Voo validada em vídeo
-- [x] CI de frontend e backend
-- [x] aplicativo Android em evolução
+- [x] Mission Timeline
+- [x] Flight Control Center
+- [x] Docker Compose
+- [x] GitHub Actions CI
+- [x] Android em evolução
 
-### Em evolução
+### Roadmap
 
-- [ ] GPS real do motorista
-- [ ] telemetria física de drone
-- [ ] mapa externo / tiles geográficos
-- [ ] tráfego externo e ETA dinâmico
-- [ ] integrações regulatórias e meteorológicas reais para drones
-- [ ] notificações reais por e-mail/SMS/WhatsApp
+- [ ] Estoque e reserva de SKU
 - [ ] Spring Security + JWT
 - [ ] perfis `ADMIN`, `CUSTOMER` e `DRIVER`
 - [ ] Kafka para eventos logísticos
@@ -690,33 +505,16 @@ UP
 - [ ] Prometheus + Grafana
 - [ ] OpenTelemetry
 - [ ] Testcontainers
+- [ ] tráfego externo e ETA dinâmico
+- [ ] GPS real do motorista
+- [ ] notificações reais por e-mail/SMS/WhatsApp
+- [ ] integrações regulatórias e meteorológicas reais para drones
 
 ---
 
 ## 🧠 Conceitos aplicados
 
-- arquitetura em camadas;
-- modelagem orientada ao domínio;
-- DTO Pattern;
-- Repository Pattern;
-- injeção de dependência;
-- API REST;
-- validação;
-- transações Spring;
-- JPA/Hibernate;
-- Flyway;
-- snapshots para preservação histórica;
-- SHA-256 para fingerprint de contexto;
-- audit trail;
-- Haversine;
-- interpolação geográfica simulada;
-- heurística de despacho;
-- otimização de sequência;
-- containerização;
-- SPA React;
-- CI com GitHub Actions;
-- Conventional Commits;
-- evolução incremental por branches e pull requests.
+`Java` · `Spring Boot` · `REST` · `JPA` · `Hibernate` · `PostgreSQL` · `Flyway` · `React` · `TypeScript` · `Docker` · `DTO Pattern` · `Repository Pattern` · `Domain Modeling` · `Transactions` · `Haversine` · `Geographic Interpolation` · `Audit Trail` · `SHA-256` · `Route Optimization` · `CI/CD`
 
 ---
 
@@ -724,12 +522,16 @@ UP
 
 **Jucelio Farias Coelho**
 
-Projeto de portfólio e estudo aplicado em **Java Backend, Desenvolvimento Full Stack, Android, Banco de Dados, Docker, Logística e Engenharia de Software**.
+Projeto desenvolvido para estudo aplicado e portfólio em **Java Backend, Full Stack Development, Android, Banco de Dados, Docker, Logística e Engenharia de Software**.
 
-GitHub: [juceliocoelho2022](https://github.com/juceliocoelho2022)
+GitHub: [@juceliocoelho2022](https://github.com/juceliocoelho2022)
 
 ---
 
+<div align="center">
+
 ### RotaCerta
 
-**Tecnologia conectando cada etapa da entrega — do pedido ao cliente final.**
+**Tecnologia conectando cada etapa da operação logística — do pedido à entrega final.**
+
+</div>
