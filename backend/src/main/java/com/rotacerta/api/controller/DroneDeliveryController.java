@@ -1,5 +1,7 @@
 package com.rotacerta.api.controller;
 
+import com.rotacerta.api.dto.DroneAuthorizationRequest;
+import com.rotacerta.api.dto.DroneAuthorizationResponse;
 import com.rotacerta.api.dto.DroneEligibilityResponse;
 import com.rotacerta.api.dto.DroneMissionResponse;
 import com.rotacerta.api.dto.DroneMissionStatusUpdateRequest;
@@ -40,6 +42,20 @@ public class DroneDeliveryController {
     @ResponseStatus(HttpStatus.CREATED)
     public DroneMissionResponse createMission(@PathVariable Long orderId) {
         return service.createMission(orderId);
+    }
+
+    @GetMapping("/missions/{missionId}/authorizations")
+    public List<DroneAuthorizationResponse> authorizations(@PathVariable Long missionId) {
+        return service.findAuthorizations(missionId);
+    }
+
+    @PostMapping("/missions/{missionId}/authorizations")
+    @ResponseStatus(HttpStatus.CREATED)
+    public DroneAuthorizationResponse authorizeMission(
+            @PathVariable Long missionId,
+            @Valid @RequestBody DroneAuthorizationRequest request
+    ) {
+        return service.createAuthorization(missionId, request);
     }
 
     @PatchMapping("/missions/{missionId}/status")
