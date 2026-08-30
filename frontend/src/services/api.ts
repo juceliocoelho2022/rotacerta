@@ -275,6 +275,8 @@ export interface CustomerDetail {
 
 export type DroneStatus = 'AVAILABLE' | 'RESERVED' | 'IN_FLIGHT' | 'RETURNING' | 'CHARGING' | 'MAINTENANCE' | 'OFFLINE'
 export type DroneMissionStatus = 'PLANNED' | 'AUTHORIZED' | 'LOADING' | 'READY_FOR_TAKEOFF' | 'IN_FLIGHT' | 'APPROACHING' | 'LOWERING_PACKAGE' | 'DELIVERED' | 'RETURNING' | 'COMPLETED' | 'ABORTED'
+export type DroneAuthorizationDecision = 'APPROVED_SIMULATION' | 'REJECTED'
+export type DroneAuditCheck = 'PASSED' | 'FAILED' | 'PENDING_EXTERNAL'
 
 export interface Drone {
   id: number
@@ -322,4 +324,35 @@ export interface DroneMission {
   destinationLongitude: number
   createdAt: string
   updatedAt: string
+}
+
+export interface DroneAuthorizationEvidence {
+  id: number
+  evidenceType: string
+  reference: string
+  description: string | null
+  createdAt: string
+}
+
+export interface DroneAuthorization {
+  id: number
+  missionId: number
+  decision: DroneAuthorizationDecision
+  authorizedBy: string
+  authorizedAt: string
+  validFrom: string
+  validUntil: string
+  reason: string
+  policyVersion: string
+  simulationMode: string
+  airspaceCheck: DroneAuditCheck
+  weatherCheck: DroneAuditCheck
+  geofenceCheck: DroneAuditCheck
+  payloadCheck: DroneAuditCheck
+  batteryCheck: DroneAuditCheck
+  routeCheck: DroneAuditCheck
+  contextSnapshot: string
+  contextFingerprint: string
+  active: boolean
+  evidence: DroneAuthorizationEvidence[]
 }
