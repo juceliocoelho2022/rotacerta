@@ -34,3 +34,9 @@ springdoc:
 
 app:
   upload-dir: ${DRIVER_UPLOAD_DIR:uploads}
+  security:
+    jwt-secret: ${ROTACERTA_JWT_SECRET:rotacerta-local-development-secret-key-change-me-2026}
+    access-token-minutes: ${ROTACERTA_ACCESS_TOKEN_MINUTES:15}
+    refresh-token-days: ${ROTACERTA_REFRESH_TOKEN_DAYS:7}
+    frontend-origin: ${ROTACERTA_FRONTEND_ORIGIN:http://localhost:5173}
+    seed-demo-users: ${ROTACERTA_SEED_DEMO_USERS:true}
