@@ -15,6 +15,7 @@ import './styles/customers.css'
 import './styles/customer-forms.css'
 import './styles/orders.css'
 import './styles/orders-dispatch.css'
+import './styles/operations-suite.css'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

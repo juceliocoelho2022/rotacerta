@@ -9,6 +9,10 @@ import { Customers } from './pages/Customers'
 import { Orders } from './pages/Orders'
 import { Tracking } from './pages/Tracking'
 import { LiveTracking } from './pages/LiveTracking'
+import { Vehicles } from './pages/Vehicles'
+import { Incidents } from './pages/Incidents'
+import { Reports } from './pages/Reports'
+import { Settings } from './pages/Settings'
 import { Placeholder } from './pages/Placeholder'
 
 export default function App() {
@@ -25,11 +29,11 @@ export default function App() {
           <Route path="/customers" element={<Customers />} />
           <Route path="/orders" element={<Orders />} />
           <Route path="/tracking" element={<Tracking />} />
-          <Route path="/vehicles" element={<Placeholder title="Veículos" />} />
-          <Route path="/incidents" element={<Placeholder title="Ocorrências" />} />
-          <Route path="/reports" element={<Placeholder title="Relatórios" />} />
+          <Route path="/vehicles" element={<Vehicles />} />
+          <Route path="/incidents" element={<Incidents />} />
+          <Route path="/reports" element={<Reports />} />
           <Route path="/stock" element={<Placeholder title="Estoque" />} />
-          <Route path="/settings" element={<Placeholder title="Configurações" />} />
+          <Route path="/settings" element={<Settings />} />
         </Route>
       </Routes>
     </BrowserRouter>
