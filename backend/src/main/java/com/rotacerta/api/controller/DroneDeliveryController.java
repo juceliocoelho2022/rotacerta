@@ -3,11 +3,13 @@ package com.rotacerta.api.controller;
 import com.rotacerta.api.dto.DroneAuthorizationRequest;
 import com.rotacerta.api.dto.DroneAuthorizationResponse;
 import com.rotacerta.api.dto.DroneEligibilityResponse;
+import com.rotacerta.api.dto.DroneFlightSimulationResponse;
 import com.rotacerta.api.dto.DroneMissionEventResponse;
 import com.rotacerta.api.dto.DroneMissionResponse;
 import com.rotacerta.api.dto.DroneMissionStatusUpdateRequest;
 import com.rotacerta.api.dto.DroneResponse;
 import com.rotacerta.api.service.DroneDeliveryService;
+import com.rotacerta.api.service.DroneFlightSimulationService;
 import com.rotacerta.api.service.DroneMissionOrchestrationService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -21,13 +23,16 @@ public class DroneDeliveryController {
 
     private final DroneDeliveryService service;
     private final DroneMissionOrchestrationService orchestrationService;
+    private final DroneFlightSimulationService flightSimulationService;
 
     public DroneDeliveryController(
             DroneDeliveryService service,
-            DroneMissionOrchestrationService orchestrationService
+            DroneMissionOrchestrationService orchestrationService,
+            DroneFlightSimulationService flightSimulationService
     ) {
         this.service = service;
         this.orchestrationService = orchestrationService;
+        this.flightSimulationService = flightSimulationService;
     }
 
     @GetMapping("/drones")
@@ -59,6 +64,11 @@ public class DroneDeliveryController {
     @GetMapping("/missions/{missionId}/timeline")
     public List<DroneMissionEventResponse> timeline(@PathVariable Long missionId) {
         return orchestrationService.findTimeline(missionId);
+    }
+
+    @GetMapping("/missions/{missionId}/flight-simulation")
+    public DroneFlightSimulationResponse flightSimulation(@PathVariable Long missionId) {
+        return flightSimulationService.getSimulation(missionId);
     }
 
     @PostMapping("/missions/{missionId}/authorizations")
