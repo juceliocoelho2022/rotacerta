@@ -7,6 +7,7 @@ import com.rotacerta.api.dto.DroneMissionResponse;
 import com.rotacerta.api.dto.DroneMissionStatusUpdateRequest;
 import com.rotacerta.api.dto.DroneResponse;
 import com.rotacerta.api.service.DroneDeliveryService;
+import com.rotacerta.api.service.DroneMissionOrchestrationService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -18,9 +19,14 @@ import java.util.List;
 public class DroneDeliveryController {
 
     private final DroneDeliveryService service;
+    private final DroneMissionOrchestrationService orchestrationService;
 
-    public DroneDeliveryController(DroneDeliveryService service) {
+    public DroneDeliveryController(
+            DroneDeliveryService service,
+            DroneMissionOrchestrationService orchestrationService
+    ) {
         this.service = service;
+        this.orchestrationService = orchestrationService;
     }
 
     @GetMapping("/drones")
@@ -63,6 +69,6 @@ public class DroneDeliveryController {
             @PathVariable Long missionId,
             @Valid @RequestBody DroneMissionStatusUpdateRequest request
     ) {
-        return service.updateMissionStatus(missionId, request.status());
+        return orchestrationService.updateMissionStatus(missionId, request.status());
     }
 }
