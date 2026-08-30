@@ -9,6 +9,7 @@ import com.rotacerta.api.repository.AppUserRepository;
 import com.rotacerta.api.repository.RefreshTokenRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -58,10 +59,10 @@ public class AuthService {
     @Transactional
     public AuthResponse refresh(String rawRefreshToken) {
         RefreshToken current = refreshTokenRepository.findByTokenHash(hash(rawRefreshToken))
-                .orElseThrow(() -> new IllegalArgumentException("Refresh token inválido."));
+                .orElseThrow(() -> new BadCredentialsException("Refresh token inválido."));
 
         if (current.isRevoked() || current.isExpired() || !current.getUser().isActive()) {
-            throw new IllegalArgumentException("Refresh token expirado ou revogado.");
+            throw new BadCredentialsException("Refresh token expirado ou revogado.");
         }
 
         current.revoke();
@@ -71,6 +72,9 @@ public class AuthService {
 
     @Transactional
     public void logout(String rawRefreshToken) {
+        if (rawRefreshToken == null || rawRefreshToken.isBlank()) {
+            return;
+        }
         refreshTokenRepository.findByTokenHash(hash(rawRefreshToken)).ifPresent(token -> {
             token.revoke();
             refreshTokenRepository.save(token);
@@ -103,7 +107,7 @@ public class AuthService {
 
     private AppUser findUser(String email) {
         return userRepository.findByEmailIgnoreCase(email.trim())
-                .orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado."));
+                .orElseThrow(() -> new BadCredentialsException("Usuário não encontrado."));
     }
 
     private AuthUserResponse toUserResponse(AppUser user) {
@@ -125,7 +129,7 @@ public class AuthService {
 
     private String hash(String value) {
         if (value == null || value.isBlank()) {
-            throw new IllegalArgumentException("Refresh token é obrigatório.");
+            throw new BadCredentialsException("Refresh token é obrigatório.");
         }
         try {
             byte[] digest = MessageDigest.getInstance("SHA-256")
