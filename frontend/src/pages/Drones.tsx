@@ -200,12 +200,18 @@ export function Drones() {
       setMessage('A validade deve ficar entre 5 e 240 minutos.')
       return
     }
-    if ((evidenceType.trim() && !evidenceReference.trim()) || (!evidenceType.trim() && evidenceReference.trim())) {
+
+    const evidenceStarted = Boolean(evidenceReference.trim() || evidenceDescription.trim())
+    if (decision === 'APPROVED_SIMULATION' && !evidenceReference.trim()) {
+      setMessage('Para aprovar a simulação, registre ao menos uma evidência com referência.')
+      return
+    }
+    if (evidenceStarted && (!evidenceType.trim() || !evidenceReference.trim())) {
       setMessage('Para registrar evidência, informe tipo e referência.')
       return
     }
 
-    const evidence = evidenceType.trim() && evidenceReference.trim()
+    const evidence = evidenceReference.trim()
       ? [{
           evidenceType: evidenceType.trim(),
           reference: evidenceReference.trim(),
@@ -442,7 +448,7 @@ export function Drones() {
                     <label>Justificativa<textarea value={authorizationReason} onChange={event => setAuthorizationReason(event.target.value)} maxLength={1000} placeholder="Descreva o contexto e o motivo da decisão." /></label>
                     <label>Validade da decisão<select value={validMinutes} onChange={event => setValidMinutes(Number(event.target.value))}><option value={15}>15 minutos</option><option value={30}>30 minutos</option><option value={60}>60 minutos</option><option value={120}>120 minutos</option><option value={240}>240 minutos</option></select></label>
                     <div className="droneEvidenceForm">
-                      <strong>Evidência opcional</strong>
+                      <strong>Evidência obrigatória para aprovação</strong>
                       <input value={evidenceType} onChange={event => setEvidenceType(event.target.value)} placeholder="Tipo: CHECKLIST_OPERACIONAL" />
                       <input value={evidenceReference} onChange={event => setEvidenceReference(event.target.value)} placeholder="Referência, protocolo, hash ou URL interna" />
                       <textarea value={evidenceDescription} onChange={event => setEvidenceDescription(event.target.value)} placeholder="Descrição da evidência" />
