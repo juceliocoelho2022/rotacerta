@@ -15,6 +15,7 @@ type Props = {
 }
 
 type DraftItem = {
+  sku: string
   productName: string
   quantity: number
   unitPrice: string
@@ -22,7 +23,24 @@ type DraftItem = {
   volumeM3: string
 }
 
+type InventoryProduct = {
+  productId: number
+  sku: string
+  productName: string
+  unitPrice: number
+  totalQuantity: number
+  reservedQuantity: number
+  availableQuantity: number
+  weightKg?: number
+  volumeM3?: number
+  stockStatus: 'OK' | 'LOW_STOCK' | 'OUT_OF_STOCK'
+}
+
 const steps = ['Cliente', 'Produtos', 'Endereço', 'Entrega', 'Revisão']
+
+function emptyItem(): DraftItem {
+  return { sku: '', productName: '', quantity: 1, unitPrice: '', weightKg: '0', volumeM3: '0' }
+}
 
 function localDateValue(date = new Date()) {
   const year = date.getFullYear()
@@ -38,12 +56,11 @@ function money(value: number) {
 export function OrderCreateModal({ onClose, onCreated }: Props) {
   const [step, setStep] = useState(0)
   const [customers, setCustomers] = useState<CustomerListItem[]>([])
+  const [catalog, setCatalog] = useState<InventoryProduct[]>([])
   const [customerId, setCustomerId] = useState<number | null>(null)
   const [customerDetail, setCustomerDetail] = useState<CustomerDetail | null>(null)
   const [addressId, setAddressId] = useState<number | null>(null)
-  const [items, setItems] = useState<DraftItem[]>([
-    { productName: '', quantity: 1, unitPrice: '', weightKg: '0', volumeM3: '0' }
-  ])
+  const [items, setItems] = useState<DraftItem[]>([emptyItem()])
   const [priority, setPriority] = useState<OrderPriority>('NORMAL')
   const [deliveryType, setDeliveryType] = useState<DeliveryType>('STANDARD')
   const [deliveryDate, setDeliveryDate] = useState(localDateValue())
@@ -55,9 +72,15 @@ export function OrderCreateModal({ onClose, onCreated }: Props) {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    api.get<CustomerListItem[]>('/api/customers')
-      .then(response => setCustomers(response.data.filter(customer => customer.active)))
-      .catch(() => setError('Não foi possível carregar os clientes.'))
+    Promise.all([
+      api.get<CustomerListItem[]>('/api/customers'),
+      api.get<InventoryProduct[]>('/api/inventory')
+    ])
+      .then(([customersResponse, inventoryResponse]) => {
+        setCustomers(customersResponse.data.filter(customer => customer.active))
+        setCatalog(inventoryResponse.data)
+      })
+      .catch(() => setError('Não foi possível carregar clientes e catálogo de estoque.'))
       .finally(() => setLoading(false))
   }, [])
 
@@ -108,8 +131,25 @@ export function OrderCreateModal({ onClose, onCreated }: Props) {
     setItems(current => current.map((item, itemIndex) => itemIndex === index ? { ...item, [field]: value } : item))
   }
 
+  function selectSku(index: number, sku: string) {
+    const product = catalog.find(item => item.sku === sku)
+    if (!product) {
+      setItems(current => current.map((item, itemIndex) => itemIndex === index ? emptyItem() : item))
+      return
+    }
+
+    setItems(current => current.map((item, itemIndex) => itemIndex === index ? {
+      ...item,
+      sku: product.sku,
+      productName: product.productName,
+      unitPrice: String(product.unitPrice),
+      weightKg: String(product.weightKg ?? 0),
+      volumeM3: String(product.volumeM3 ?? 0)
+    } : item))
+  }
+
   function addItem() {
-    setItems(current => [...current, { productName: '', quantity: 1, unitPrice: '', weightKg: '0', volumeM3: '0' }])
+    setItems(current => [...current, emptyItem()])
   }
 
   function removeItem(index: number) {
@@ -125,16 +165,9 @@ export function OrderCreateModal({ onClose, onCreated }: Props) {
     }
 
     if (step === 1) {
-      const invalid = items.some(item =>
-        !item.productName.trim() ||
-        Number(item.quantity) <= 0 ||
-        Number(item.unitPrice) < 0 ||
-        Number(item.weightKg) < 0 ||
-        Number(item.volumeM3) < 0 ||
-        item.unitPrice === ''
-      )
+      const invalid = items.some(item => !item.sku || Number(item.quantity) <= 0)
       if (invalid) {
-        setError('Revise os produtos. Nome, quantidade e preço são obrigatórios e os valores não podem ser negativos.')
+        setError('Selecione um SKU válido do catálogo e informe uma quantidade maior que zero para cada item.')
         return false
       }
     }
@@ -189,11 +222,8 @@ export function OrderCreateModal({ onClose, onCreated }: Props) {
         windowStart: windowStart || null,
         windowEnd: windowEnd || null,
         items: items.map(item => ({
-          productName: item.productName.trim(),
-          quantity: Number(item.quantity),
-          unitPrice: Number(item.unitPrice),
-          weightKg: Number(item.weightKg || 0),
-          volumeM3: Number(item.volumeM3 || 0)
+          sku: item.sku,
+          quantity: Number(item.quantity)
         }))
       })
       await onCreated(response.data.id)
@@ -231,7 +261,7 @@ export function OrderCreateModal({ onClose, onCreated }: Props) {
           {step === 0 && (
             <section className="orderWizardSection">
               <div className="orderWizardTitle"><h3>1. Selecione o cliente</h3><p>Somente clientes ativos podem receber novos pedidos.</p></div>
-              {loading ? <div className="orderEmptyState">Carregando clientes...</div> : (
+              {loading ? <div className="orderEmptyState">Carregando clientes e catálogo...</div> : (
                 <div className="orderCustomerGrid">
                   {customers.map(customer => (
                     <button className={customer.id === customerId ? 'selected' : ''} type="button" key={customer.id} onClick={() => setCustomerId(customer.id)}>
@@ -245,20 +275,33 @@ export function OrderCreateModal({ onClose, onCreated }: Props) {
 
           {step === 1 && (
             <section className="orderWizardSection">
-              <div className="orderWizardTitle action"><div><h3>2. Produtos</h3><p>Preço, peso e volume serão usados no cálculo comercial e logístico.</p></div><button type="button" onClick={addItem}><Plus size={15}/> Adicionar item</button></div>
+              <div className="orderWizardTitle action"><div><h3>2. Produtos por SKU</h3><p>Os dados comerciais e logísticos vêm do catálogo de estoque; o pedido não aceita preço ou peso digitado manualmente.</p></div><button type="button" onClick={addItem}><Plus size={15}/> Adicionar item</button></div>
               <div className="orderItemsEditor">
-                {items.map((item, index) => (
-                  <article key={index}>
-                    <div className="orderItemTop"><strong>Item {index + 1}</strong><button type="button" disabled={items.length === 1} onClick={() => removeItem(index)}><Trash2 size={15}/></button></div>
-                    <div className="orderFormGrid">
-                      <label className="wide">Produto<input required maxLength={180} value={item.productName} onChange={event => updateItem(index, 'productName', event.target.value)} placeholder="Ex.: Notebook Dell" /></label>
-                      <label>Quantidade<input type="number" min="1" step="1" value={item.quantity} onChange={event => updateItem(index, 'quantity', Number(event.target.value))} /></label>
-                      <label>Preço unitário<input type="number" min="0" step="0.01" value={item.unitPrice} onChange={event => updateItem(index, 'unitPrice', event.target.value)} placeholder="0,00" /></label>
-                      <label>Peso unitário (kg)<input type="number" min="0" step="0.001" value={item.weightKg} onChange={event => updateItem(index, 'weightKg', event.target.value)} /></label>
-                      <label>Volume unitário (m³)<input type="number" min="0" step="0.0001" value={item.volumeM3} onChange={event => updateItem(index, 'volumeM3', event.target.value)} /></label>
-                    </div>
-                  </article>
-                ))}
+                {items.map((item, index) => {
+                  const selectedProduct = catalog.find(product => product.sku === item.sku)
+                  return (
+                    <article key={index}>
+                      <div className="orderItemTop"><strong>Item {index + 1}</strong><button type="button" disabled={items.length === 1} onClick={() => removeItem(index)}><Trash2 size={15}/></button></div>
+                      <div className="orderFormGrid">
+                        <label className="wide">SKU / Produto
+                          <select required value={item.sku} onChange={event => selectSku(index, event.target.value)}>
+                            <option value="">Selecione um produto do estoque</option>
+                            {catalog.map(product => (
+                              <option key={product.sku} value={product.sku} disabled={product.availableQuantity <= 0}>
+                                {product.sku} — {product.productName} · disponível {product.availableQuantity}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <label className="wide">Produto<input readOnly value={item.productName} placeholder="Selecione um SKU" /></label>
+                        <label>Quantidade<input type="number" min="1" step="1" max={selectedProduct?.availableQuantity || undefined} value={item.quantity} onChange={event => updateItem(index, 'quantity', Number(event.target.value))} /></label>
+                        <label>Preço unitário<input readOnly value={item.unitPrice ? money(Number(item.unitPrice)) : ''} /></label>
+                        <label>Peso unitário (kg)<input readOnly value={item.weightKg} /></label>
+                        <label>Volume unitário (m³)<input readOnly value={item.volumeM3} /></label>
+                      </div>
+                    </article>
+                  )
+                })}
               </div>
               <div className="orderTotalsStrip"><span><small>Itens/volumes</small><strong>{totals.packages}</strong></span><span><small>Peso total</small><strong>{totals.weight.toFixed(3)} kg</strong></span><span><small>Volume total</small><strong>{totals.volume.toFixed(4)} m³</strong></span><span><small>Total</small><strong>{money(totals.total)}</strong></span></div>
             </section>
@@ -304,7 +347,7 @@ export function OrderCreateModal({ onClose, onCreated }: Props) {
                 <article className="wide"><small>Destino</small><strong>{selectedAddress ? `${selectedAddress.street}, ${selectedAddress.number}` : '—'}</strong><span>{selectedAddress ? `${selectedAddress.city}/${selectedAddress.state}` : ''}</span></article>
               </div>
               <div className="orderReviewItems">
-                {items.map((item, index) => <div key={index}><span>{item.quantity}× {item.productName}</span><strong>{money(Number(item.unitPrice) * Number(item.quantity))}</strong></div>)}
+                {items.map((item, index) => <div key={index}><span>{item.quantity}× {item.productName} <small>({item.sku})</small></span><strong>{money(Number(item.unitPrice) * Number(item.quantity))}</strong></div>)}
               </div>
               <div className="orderTotalsStrip review"><span><small>Volumes</small><strong>{totals.packages}</strong></span><span><small>Peso</small><strong>{totals.weight.toFixed(3)} kg</strong></span><span><small>Volume</small><strong>{totals.volume.toFixed(4)} m³</strong></span><span><small>Total do pedido</small><strong>{money(totals.total)}</strong></span></div>
             </section>

@@ -20,6 +20,7 @@ import com.rotacerta.api.model.OrderDeliveryDetails;
 import com.rotacerta.api.model.OrderEntity;
 import com.rotacerta.api.model.OrderItem;
 import com.rotacerta.api.model.OrderPriority;
+import com.rotacerta.api.model.Product;
 import com.rotacerta.api.model.TrackingEvent;
 import com.rotacerta.api.repository.CustomerAddressRepository;
 import com.rotacerta.api.repository.CustomerRepository;
@@ -28,6 +29,7 @@ import com.rotacerta.api.repository.DeliveryPreferenceRepository;
 import com.rotacerta.api.repository.OrderDeliveryDetailsRepository;
 import com.rotacerta.api.repository.OrderItemRepository;
 import com.rotacerta.api.repository.OrderRepository;
+import com.rotacerta.api.repository.ProductRepository;
 import com.rotacerta.api.repository.TrackingEventRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,6 +43,7 @@ import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.Year;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -58,6 +61,8 @@ public class OrderService {
     private final OrderItemRepository orderItemRepository;
     private final OrderDeliveryDetailsRepository orderDeliveryDetailsRepository;
     private final DeliveryLocationRepository deliveryLocationRepository;
+    private final ProductRepository productRepository;
+    private final InventoryService inventoryService;
 
     public OrderService(
             OrderRepository orderRepository,
@@ -68,7 +73,9 @@ public class OrderService {
             DeliveryPreferenceRepository deliveryPreferenceRepository,
             OrderItemRepository orderItemRepository,
             OrderDeliveryDetailsRepository orderDeliveryDetailsRepository,
-            DeliveryLocationRepository deliveryLocationRepository
+            DeliveryLocationRepository deliveryLocationRepository,
+            ProductRepository productRepository,
+            InventoryService inventoryService
     ) {
         this.orderRepository = orderRepository;
         this.trackingEventRepository = trackingEventRepository;
@@ -79,6 +86,8 @@ public class OrderService {
         this.orderItemRepository = orderItemRepository;
         this.orderDeliveryDetailsRepository = orderDeliveryDetailsRepository;
         this.deliveryLocationRepository = deliveryLocationRepository;
+        this.productRepository = productRepository;
+        this.inventoryService = inventoryService;
     }
 
     @Transactional(readOnly = true)
@@ -128,10 +137,14 @@ public class OrderService {
 
         validateTimeWindow(windowStart, windowEnd, request.deliveryType());
 
-        BigDecimal total = request.items().stream()
-                .map(item -> item.unitPrice().multiply(BigDecimal.valueOf(item.quantity())))
-                .reduce(BigDecimal.ZERO, BigDecimal::add)
-                .setScale(2, RoundingMode.HALF_UP);
+        List<Product> products = new ArrayList<>();
+        BigDecimal total = BigDecimal.ZERO;
+        for (OrderItemCreateRequest item : request.items()) {
+            Product product = getActiveProduct(item.sku());
+            products.add(product);
+            total = total.add(product.getUnitPrice().multiply(BigDecimal.valueOf(item.quantity())));
+        }
+        total = total.setScale(2, RoundingMode.HALF_UP);
 
         OrderEntity order = orderRepository.save(new OrderEntity(
                 generateOrderNumber(),
@@ -143,9 +156,10 @@ public class OrderService {
                 generateTrackingCode()
         ));
 
-        List<OrderItem> items = request.items().stream()
-                .map(item -> toEntity(order, item))
-                .toList();
+        List<OrderItem> items = new ArrayList<>();
+        for (int index = 0; index < request.items().size(); index++) {
+            items.add(toEntity(order, request.items().get(index), products.get(index)));
+        }
         List<OrderItem> savedItems = orderItemRepository.saveAll(items);
 
         String instructions = preference != null ? preference.getDeliveryInstructions() : null;
@@ -209,6 +223,16 @@ public class OrderService {
         }
 
         OrderEntity order = getOrder(id);
+        List<OrderItem> items = orderItemRepository.findByOrderIdOrderByIdAsc(order.getId());
+
+        if (request.status() == DeliveryStatus.PAYMENT_APPROVED) {
+            inventoryService.reserveOrderItems(order, items);
+        } else if (request.status() == DeliveryStatus.PICKING) {
+            inventoryService.pickOrderItems(order, items);
+        } else if (request.status() == DeliveryStatus.CANCELLED) {
+            inventoryService.releaseOrderReservations(order);
+        }
+
         order.setStatus(request.status());
         OrderEntity updatedOrder = orderRepository.save(order);
 
@@ -359,15 +383,29 @@ public class OrderService {
         }
     }
 
-    private OrderItem toEntity(OrderEntity order, OrderItemCreateRequest item) {
+    private OrderItem toEntity(OrderEntity order, OrderItemCreateRequest item, Product product) {
         return new OrderItem(
                 order,
-                item.productName().trim(),
+                product,
+                product.getSku(),
+                product.getName(),
                 item.quantity(),
-                item.unitPrice(),
-                item.weightKg(),
-                item.volumeM3()
+                product.getUnitPrice(),
+                product.getWeightKg(),
+                product.getVolumeM3()
         );
+    }
+
+    private Product getActiveProduct(String sku) {
+        if (sku == null || sku.isBlank()) {
+            throw new IllegalArgumentException("O SKU é obrigatório para todos os itens do pedido.");
+        }
+        Product product = productRepository.findBySkuIgnoreCase(sku.trim())
+                .orElseThrow(() -> new IllegalArgumentException("SKU não encontrado no catálogo: " + sku));
+        if (!product.isActive()) {
+            throw new IllegalArgumentException("O SKU está inativo e não pode ser incluído no pedido: " + product.getSku());
+        }
+        return product;
     }
 
     private String generateOrderNumber() {
@@ -454,6 +492,7 @@ public class OrderService {
     private OrderItemResponse toItemResponse(OrderItem item) {
         return new OrderItemResponse(
                 item.getId(),
+                item.getSku(),
                 item.getProductName(),
                 item.getQuantity(),
                 item.getUnitPrice(),

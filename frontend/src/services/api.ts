@@ -35,6 +35,7 @@ export interface Order {
 
 export interface OrderItemDetail {
   id: number
+  sku: string | null
   productName: string
   quantity: number
   unitPrice: number

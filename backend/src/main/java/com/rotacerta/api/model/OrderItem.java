@@ -24,6 +24,13 @@ public class OrderItem {
     @JoinColumn(name = "order_id", nullable = false)
     private OrderEntity order;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "product_id")
+    private Product product;
+
+    @Column(length = 80)
+    private String sku;
+
     @Column(name = "product_name", nullable = false, length = 180)
     private String productName;
 
@@ -43,6 +50,8 @@ public class OrderItem {
 
     public OrderItem(
             OrderEntity order,
+            Product product,
+            String sku,
             String productName,
             int quantity,
             BigDecimal unitPrice,
@@ -50,6 +59,8 @@ public class OrderItem {
             BigDecimal volumeM3
     ) {
         this.order = order;
+        this.product = product;
+        this.sku = sku;
         this.productName = productName;
         this.quantity = quantity;
         this.unitPrice = unitPrice;
@@ -59,6 +70,8 @@ public class OrderItem {
 
     public Long getId() { return id; }
     public OrderEntity getOrder() { return order; }
+    public Product getProduct() { return product; }
+    public String getSku() { return sku; }
     public String getProductName() { return productName; }
     public int getQuantity() { return quantity; }
     public BigDecimal getUnitPrice() { return unitPrice; }
