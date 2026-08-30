@@ -3,7 +3,6 @@ package com.rotacerta.api.security;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -47,6 +46,18 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authenticationProvider())
+                .exceptionHandling(exceptions -> exceptions
+                        .authenticationEntryPoint((request, response, exception) -> {
+                            response.setStatus(401);
+                            response.setContentType("application/json;charset=UTF-8");
+                            response.getWriter().write("{\"message\":\"Autenticação necessária ou token inválido.\"}");
+                        })
+                        .accessDeniedHandler((request, response, exception) -> {
+                            response.setStatus(403);
+                            response.setContentType("application/json;charset=UTF-8");
+                            response.getWriter().write("{\"message\":\"Seu perfil não possui permissão para esta operação.\"}");
+                        })
+                )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/api/auth/**",
@@ -60,7 +71,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/customer-portal/**").hasRole("CUSTOMER")
                         .requestMatchers("/api/driver-portal/**").hasRole("DRIVER")
                         .requestMatchers("/api/driver/**").hasAnyRole("ADMIN", "DRIVER")
-                        .requestMatchers(HttpMethod.PATCH, "/api/dispatch/drivers/**").hasAnyRole("ADMIN", "DRIVER")
+                        .requestMatchers("/api/dispatch/drivers/**").hasAnyRole("ADMIN", "DRIVER")
                         .requestMatchers("/api/deliveries/**").hasAnyRole("ADMIN", "DRIVER")
                         .anyRequest().hasRole("ADMIN")
                 )
