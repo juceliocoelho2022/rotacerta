@@ -318,6 +318,7 @@ public class InventoryService {
         String status = available == 0 ? "OUT_OF_STOCK" : available <= inventory.getMinimumQuantity() ? "LOW_STOCK" : "OK";
         return new InventoryItemResponse(
                 inventory.getId(), product.getId(), product.getSku(), product.getName(), product.getUnitPrice(),
+                product.getWeightKg(), product.getVolumeM3(),
                 inventory.getTotalQuantity(), inventory.getReservedQuantity(), available,
                 inventory.getMinimumQuantity(), inventory.getWarehouseLocation(), status, inventory.getUpdatedAt()
         );
